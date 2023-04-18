@@ -13,12 +13,7 @@ pub struct Win {
 
 impl Win {
 	pub fn new(x_res: u32, y_res: u32) -> Win {
-		// query aquabsd.alps.win device
-
 		let dev = aqua::query_device("aquabsd.alps.win");
-
-		// create window itself
-
 		let win = aqua::send_device!(dev, 0x6377, x_res, y_res);
 
 		Win {
