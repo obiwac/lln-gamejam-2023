@@ -20,7 +20,7 @@ linker.link(src.toList, ["std-7c7f3bd22bdaa9dd"], "main", true)
 // running
 
 class Runner {
-	static run(args) { File.exec("aqua", ["--boot", "default.zpk"]) }
+	static run(args) { File.exec("kos", ["--boot", "default.zpk"]) }
 }
 
 // installation map
@@ -35,6 +35,7 @@ var install = {
 
 var pkg = Package.new(entry)
 
+pkg.unique = "lln.gamejam.2023"
 pkg.name = "Louvain-li-Nux Gamejam 2023"
 pkg.description = "Submission for the 2023 Louvain-li-Nux gamejam"
 pkg.version = "0.1.0"
