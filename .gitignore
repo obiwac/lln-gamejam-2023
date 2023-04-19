@@ -1,2 +1,5 @@
 *.zpk
 bin
+Cargo.lock
+*.core
+target
