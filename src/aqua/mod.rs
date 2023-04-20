@@ -1,4 +1,5 @@
 pub mod win;
+pub mod vk;
 
 // entry point for the KOS
 
