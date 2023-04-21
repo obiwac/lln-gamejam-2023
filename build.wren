@@ -1,3 +1,6 @@
+
+
+
 // dependencies
 
 Deps.git_inherit("https://github.com/inobulles/aqua-unix")
@@ -15,7 +18,13 @@ src
 // link program
 
 var linker = Linker.new()
-linker.link(src.toList, ["std-7c7f3bd22bdaa9dd"], "main", true)
+
+if (Meta.os().contains("Linux")){
+	linker.link(src.toList, ["std-2908e577647e150b"], "main", true)
+}else{
+	linker.link(src.toList, ["std-7c7f3bd22bdaa9dd"], "main", true)
+}
+
 
 // running
 
