@@ -2,7 +2,7 @@ use aqua;
 
 pub struct Win {
 	dev: aqua::Device,
-	win: u64,
+	pub win: u64,
 
 	#[allow(dead_code)]
 	x_res: u32,

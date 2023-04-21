@@ -23,7 +23,7 @@ impl VkContext {
 		let c_str = std::ffi::CString::new(name).unwrap();
 
 		let dev = aqua::query_device("aquabsd.alps.vk");
-		let context = aqua::send_device!(dev, 0x6363, kind.to_device_arg(), c_str.as_ptr(), ver_major, ver_minor, ver_patch);
+		let context = aqua::send_device!(dev, 0x6363, kind.to_device_arg(), win.win, c_str.as_ptr(), ver_major, ver_minor, ver_patch);
 
 		// TODO check for failures
 
