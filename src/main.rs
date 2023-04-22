@@ -9,6 +9,7 @@ fn main() {
 	let mut vk_context = aqua::vk::VkContext::new(win, name, 0, 1, 0);
 
 	let instance = &vk_context.get_instance();
+	let device = &vk_context.get_device();
 	let surface = &vk_context.get_surface();
 
 	unsafe { instance.enumerate_physical_devices() };
