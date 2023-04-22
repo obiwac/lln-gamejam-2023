@@ -6,6 +6,11 @@ extern crate ash;
 
 extern crate ndarray;
 
+extern "C" fn draw(win: u64, data: u64) -> u64 {
+	println!("Draw hook {:} {:}", win, data);
+	0
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
 	let name = "Louvain-li-Nux Gamejam 2023";
 	
@@ -15,12 +20,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let mut win = aqua::win::Win::new(WIDTH, HEIGHT);
 	win.caption(name);
 
-	let mut mouse = aqua::mouse::Mouse::default();
-	mouse.update();
-	println!("{:}", mouse.poll_axis(aqua::mouse::MouseAxis::X));
-
 	println!("get vk_context");
-	let mut vk_context = aqua::vk::VkContext::new(win, name, 0, 1, 0);
+	let mut vk_context = aqua::vk::VkContext::new(&win, name, 0, 1, 0);
 
 	println!("get instance");
 	let instance = &vk_context.get_instance();
@@ -258,6 +259,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	std::thread::sleep(	std::time::Duration::from_millis(1000));
 
+	win.draw_hook(draw, 1337);
+	win.draw_loop();
 
 	// Destroy things
 	unsafe { swapchain_loader.destroy_swapchain(swapchain_khr, None) };

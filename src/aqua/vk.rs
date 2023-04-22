@@ -22,7 +22,7 @@ pub struct VkContext {
 }
 
 impl VkContext {
-	pub fn new(win: aqua::win::Win, name: &str, ver_major: u32, ver_minor: u32, ver_patch: u32) -> VkContext {
+	pub fn new(win: &aqua::win::Win, name: &str, ver_major: u32, ver_minor: u32, ver_patch: u32) -> VkContext {
 		let kind = VkContextKind::Win;
 		let c_str = std::ffi::CString::new(name).unwrap();
 
