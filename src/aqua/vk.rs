@@ -17,7 +17,8 @@ impl VkContextKind {
 pub struct VkContext {
 	dev: aqua::Device,
 	context: u64,
-	pub instance: ash::Instance,
+	entry: ash::Entry,
+	fp: ash::vk::PFN_vkGetInstanceProcAddr,
 }
 
 impl VkContext {
@@ -37,13 +38,13 @@ impl VkContext {
 			get_instance_proc_addr: fp,
 		};
 
-		let handle = unsafe { Self::get_instance(dev, context) };
-		let instance = unsafe { ash::Instance::load(&static_fn, handle) };
+		let entry = unsafe { ash::Entry::from_static_fn(static_fn) };
 
 		VkContext {
 			dev: dev,
 			context: context,
-			instance: instance,
+			entry: entry,
+			fp: fp,
 		}
 	}
 
@@ -52,9 +53,18 @@ impl VkContext {
 		aqua::send_device!(dev, 0x6766, context, c_str.as_ptr())
 	}
 
-	unsafe fn get_instance(dev: aqua::Device, context: u64) -> ash::vk::Instance {
+	unsafe fn get_vk_instance(dev: aqua::Device, context: u64) -> ash::vk::Instance {
 		let instance_addr = aqua::send_device!(dev, 0x6769, context);
 		std::mem::transmute(instance_addr)
+	}
+
+	pub fn get_instance(&mut self) -> ash::Instance {
+		let static_fn = ash::vk::StaticFn {
+			get_instance_proc_addr: self.fp,
+		};
+
+		let instance = unsafe { Self::get_vk_instance(self.dev, self.context) };
+		unsafe { ash::Instance::load(&static_fn, instance) }
 	}
 }
 

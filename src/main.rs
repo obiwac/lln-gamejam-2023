@@ -6,8 +6,10 @@ fn main() {
 	let mut win = aqua::win::Win::new(800, 600);
 	win.caption(name);
 
-	let vk_context = aqua::vk::VkContext::new(win, name, 0, 1, 0);
-	let instance = &vk_context.instance;
+	let mut vk_context = aqua::vk::VkContext::new(win, name, 0, 1, 0);
+
+	let instance = &vk_context.get_instance();
+	// let surface = &vk_context.get_surface();
 
 	unsafe { instance.enumerate_physical_devices() };
 
