@@ -1,3 +1,5 @@
+extern crate ash;
+
 mod aqua;
 
 fn main() {
@@ -6,7 +8,7 @@ fn main() {
 	let mut win = aqua::win::Win::new(800, 600);
 	win.caption(name);
 
-	let mut _vk_context = aqua::vk::VkContext::new(win, name, 0, 1, 0);
+	let _vk_context = aqua::vk::VkContext::new(win, name, 0, 1, 0);
 
 	std::thread::sleep(std::time::Duration::from_millis(1000));
 }

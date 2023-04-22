@@ -1,3 +1,5 @@
+extern crate ash;
+
 use aqua;
 
 pub enum VkContextKind {
@@ -15,6 +17,7 @@ impl VkContextKind {
 pub struct VkContext {
 	dev: aqua::Device,
 	context: u64,
+	static_fn: ash::vk::StaticFn,
 }
 
 impl VkContext {
@@ -27,15 +30,27 @@ impl VkContext {
 
 		// TODO check for failures
 
+		let fp_addr = Self::static_get_fn(dev, context, "vkInstanceGetProcAddr");
+		let fp: ash::vk::PFN_vkGetInstanceProcAddr = unsafe { std::mem::transmute(fp_addr) };
+
+		let static_fn = ash::vk::StaticFn {
+			get_instance_proc_addr: fp,
+		};
+
 		VkContext {
 			dev: dev,
 			context: context,
+			static_fn: static_fn,
 		}
 	}
 
-	pub fn get_fn(&mut self, name: &str) -> u64 {
+	fn static_get_fn(dev: aqua::Device, context: u64, name: &str) -> u64 {
 		let c_str = std::ffi::CString::new(name).unwrap();
-		aqua::send_device!(self.dev, 0x6277, self.context, c_str.as_ptr())
+		aqua::send_device!(dev, 0x6277, context, c_str.as_ptr())
+	}
+
+	pub fn get_fn(&mut self, name: &str) -> u64 {
+		Self::static_get_fn(self.dev, self.context, name)
 	}
 }
 

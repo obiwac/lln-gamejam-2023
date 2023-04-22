@@ -10,6 +10,8 @@ Deps.git_inherit("https://github.com/inobulles/iar")
 
 var rustc = RustC.new()
 
+rustc.add_dep("ash", "https://github.com/ash-rs/ash")
+
 var src = ["src/main.rs"]
 
 src
@@ -19,9 +21,11 @@ src
 
 var linker = Linker.new()
 
-if (Meta.os().contains("Linux")){
+if (Meta.os().contains("Linux")) {
 	linker.link(src.toList, ["std-2908e577647e150b"], "main", true)
-}else{
+}
+
+if (Meta.os().contains("FreeBSD")) {
 	linker.link(src.toList, ["std-7c7f3bd22bdaa9dd"], "main", true)
 }
 
@@ -48,7 +52,7 @@ pkg.unique = "lln.gamejam.2023"
 pkg.name = "Louvain-li-Nux Gamejam 2023"
 pkg.description = "Submission for the 2023 Louvain-li-Nux gamejam"
 pkg.version = "0.1.0"
-pkg.author = "@alexisloic21 @obiwac"
+pkg.author = "@alexisloic21 @obiwac @akialess"
 pkg.organization = "Louvain-li-Nux"
 pkg.www = "https://github.com/obiwac/lln-gamejam-2023"
 
