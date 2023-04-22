@@ -66,6 +66,11 @@ impl VkContext {
 		let instance = unsafe { Self::get_vk_instance(self.dev, self.context) };
 		unsafe { ash::Instance::load(&static_fn, instance) }
 	}
+
+	pub fn get_surface(&mut self) -> ash::extensions::khr::Surface {
+		let instance = self.get_instance(); // XXX meh, cache this
+		ash::extensions::khr::Surface::new(&self.entry, &instance)
+	}
 }
 
 impl Drop for VkContext {
