@@ -6,12 +6,109 @@ extern crate ash;
 
 extern crate ndarray;
 
-struct Test {
-	ash::vk::SemaphoreCreateInfo
+struct Context<'a> {
+	image_available_semaphore: ash::vk::Semaphore, 
+	render_finished_semaphore: ash::vk::Semaphore, 
+	in_flight_fence : ash::vk::Fence,
+
+	swapchain_loader : &'a ash::extensions::khr::Swapchain,
+	swapchain_khr : ash::vk::SwapchainKHR,
+
+	device : &'a ash::Device,
+
+	command_buffers : std::vec::Vec<ash::vk::CommandBuffer>,
+	framebuffers : &'a std::vec::Vec<ash::vk::Framebuffer>,
+
+	render_pass_khr : ash::vk::RenderPass,
+	extent : ash::vk::Extent2D,
+	q_family : ash::vk::Queue,
+	q_present : ash::vk::Queue,
+}
+
+
+fn draw_frame(ctx : &Context) -> Result<(), Box<dyn Error>>
+{
+	unsafe { ctx.device.wait_for_fences(&[ctx.in_flight_fence], true, std::u64::MAX)? };
+	unsafe {ctx.device.reset_fences(&[ctx.in_flight_fence]) ?};
+
+	let next_image_frame = unsafe 
+	{
+		ctx.swapchain_loader.acquire_next_image(
+			ctx.swapchain_khr,
+			std::u64::MAX,
+			ctx.image_available_semaphore,
+			ash::vk::Fence::null(),
+		)
+	};
+
+
+	let image_index = match next_image_frame {
+		Ok((image_index, _)) => image_index,
+		Err(ash::vk::Result::ERROR_OUT_OF_DATE_KHR) => {
+			return Ok(());
+		}
+		Err(error) => panic!("Error while acquiring next image. Cause: {}", error),
+	};
+	//* HOPE next_image_frame has not failed ... 
+	
+	let current_command_buffer = ctx.command_buffers[image_index as usize];
+
+
+	// Reset the command buffer ....
+	// Start a new record wouhouuuu
+	let command_buffer_begin_info = ash::vk::CommandBufferBeginInfo::default()
+		.flags(ash::vk::CommandBufferUsageFlags::SIMULTANEOUS_USE);
+
+	unsafe { ctx.device.begin_command_buffer(current_command_buffer, &command_buffer_begin_info) ?}
+
+	let render_pass_begin_info = ash::vk::RenderPassBeginInfo::default()
+		.render_pass(ctx.render_pass_khr)
+		.framebuffer(ctx.framebuffers[image_index as usize])
+		.render_area(ash::vk::Rect2D{ offset : ash::vk::Offset2D {x : 0, y : 0}, extent: ctx.extent})
+		.clear_values(&[ash::vk::ClearValue { color : ash::vk::ClearColorValue{ float32 : [1.0f32, 1.0f32, 1.0f32, 1.0f32]},}]);
+
+	// Begin
+	unsafe { ctx.device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE ) };
+	
+	// Bind pipeline 
+	// Draw 
+	// .......
+	// End
+	unsafe { ctx.device.cmd_end_render_pass(current_command_buffer) };
+	unsafe { ctx.device.end_command_buffer(current_command_buffer)? };
+
+	let a_available_semaphore = [ctx.image_available_semaphore]; 
+	let a_current_command_buffer = [current_command_buffer]; 
+	let a_render_finished_semaphore = [ctx.render_finished_semaphore];
+	let a_swapchain_khr = [ctx.swapchain_khr];
+	let a_image_index = [image_index];
+	// Submit the command buffer
+	let submit_info = [ash::vk::SubmitInfo::default()
+		.wait_semaphores(&a_available_semaphore)
+		.wait_dst_stage_mask(&[ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT])
+		.command_buffers(&a_current_command_buffer)
+		.signal_semaphores(&a_render_finished_semaphore)
+		];
+	
+	unsafe  { ctx.device.queue_submit(ctx.q_family, &submit_info, ctx.in_flight_fence) }; // TODO HMMM
+
+	// AND NOW PRESENT
+	let present_info = ash::vk::PresentInfoKHR::default()
+		.wait_semaphores(&a_render_finished_semaphore)
+		.swapchains(&a_swapchain_khr) 
+		.image_indices(&a_image_index);
+	
+	let present_result = unsafe  
+	{
+		ctx.swapchain_loader.queue_present(ctx.q_present, &present_info)
+	};
+
+	Ok(())
+
 }
 
 extern "C" fn draw(win: u64, data: u64) -> u64 {
-	// let test: Test = std::mem::transmute(data);
+	let ctx: &Context = unsafe { std::mem::transmute(data) };
 
 	println!("Draw hook {:} {:}", win, data);
 
@@ -20,6 +117,9 @@ extern "C" fn draw(win: u64, data: u64) -> u64 {
 
 	println!("{:}", mouse.poll_axis(aqua::mouse::MouseAxis::X));
 
+
+	/**********************************************************************/
+	draw_frame(ctx);
 	0
 }
 
@@ -31,7 +131,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	let png = aqua::png::Png::from_path("res/pig.png");
 
-	return Ok(());
 
 	let mut win = aqua::win::Win::new(WIDTH, HEIGHT);
 	win.caption(name);
@@ -269,88 +368,23 @@ fn main() -> Result<(), Box<dyn Error>> {
 		unsafe { device.create_fence(&fence_info, None) ?}
 	};
 
-	while( true ){
-		unsafe { device.wait_for_fences(&[in_flight_fence], true, std::u64::MAX)? };
-		unsafe {device.reset_fences(&[in_flight_fence]) ?};
-
-		let next_image_frame = unsafe 
-		{
-			swapchain_loader.acquire_next_image(
-				swapchain_khr,
-				std::u64::MAX,
-				image_available_semaphore,
-				ash::vk::Fence::null(),
-			)
-		};
-
-
-		let image_index = match next_image_frame {
-            Ok((image_index, _)) => image_index,
-            Err(ash::vk::Result::ERROR_OUT_OF_DATE_KHR) => {
-                return Ok(());
-            }
-            Err(error) => panic!("Error while acquiring next image. Cause: {}", error),
-        };
-		//* HOPE next_image_frame has not failed ... 
-		
-		let current_command_buffer = command_buffers[image_index as usize];
-
-
-		// Reset the command buffer ....
-		// Start a new record wouhouuuu
-		let command_buffer_begin_info = ash::vk::CommandBufferBeginInfo::default()
-			.flags(ash::vk::CommandBufferUsageFlags::SIMULTANEOUS_USE);
-
-		unsafe { device.begin_command_buffer(current_command_buffer, &command_buffer_begin_info) ?}
-
-		let render_pass_begin_info = ash::vk::RenderPassBeginInfo::default()
-			.render_pass(render_pass_khr)
-			.framebuffer(framebuffers[image_index as usize])
-			.render_area(ash::vk::Rect2D{ offset : ash::vk::Offset2D {x : 0, y : 0}, extent})
-			.clear_values(&[ash::vk::ClearValue { color : ash::vk::ClearColorValue{ float32 : [1.0f32, 1.0f32, 1.0f32, 1.0f32]},}]);
-
-		// Begin
-		unsafe { device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE ) };
-		
-		// Bind pipeline 
-		// Draw 
-		// .......
-		// End
-		unsafe { device.cmd_end_render_pass(current_command_buffer) };
-		unsafe { device.end_command_buffer(current_command_buffer)? };
-
-		let a_available_semaphore = [image_available_semaphore]; 
-		let a_current_command_buffer = [current_command_buffer]; 
-		let a_render_finished_semaphore = [render_finished_semaphore];
-		let a_swapchain_khr = [swapchain_khr];
-		let a_image_index = [image_index];
-		// Submit the command buffer
-		let submit_info = [ash::vk::SubmitInfo::default()
-			.wait_semaphores(&a_available_semaphore)
-			.wait_dst_stage_mask(&[ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT])
-			.command_buffers(&a_current_command_buffer)
-			.signal_semaphores(&a_render_finished_semaphore)
-			];
-		
-		unsafe  { device.queue_submit(q_family, &submit_info, in_flight_fence) }; // TODO HMMM
-
-		// AND NOW PRESENT
-		let present_info = ash::vk::PresentInfoKHR::default()
-			.wait_semaphores(&a_render_finished_semaphore)
-			.swapchains(&a_swapchain_khr) 
-			.image_indices(&a_image_index);
-		
-		let present_result = unsafe  
-		{
-			swapchain_loader.queue_present(q_present, &present_info)
-		};
-		
-
-	}
-
+	let context = Context{
+		image_available_semaphore : image_available_semaphore,
+		command_buffers : command_buffers,
+		device : device,
+		extent : extent,
+		framebuffers : &framebuffers,
+		in_flight_fence : in_flight_fence,
+		q_family : q_family,
+		q_present : q_present,
+		render_finished_semaphore : render_finished_semaphore,
+		render_pass_khr : render_pass_khr, 
+		swapchain_khr : swapchain_khr,
+		swapchain_loader :  &swapchain_loader,
+	};
 	std::thread::sleep(std::time::Duration::from_millis(1000));
-
-	win.draw_hook(draw, 1337);
+	
+	win.draw_hook(draw, unsafe { std::mem::transmute(&context)});
 	win.draw_loop();
 
 	// Destroy things
