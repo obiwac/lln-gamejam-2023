@@ -4,12 +4,13 @@ use std ::{
 };
 extern crate ash;
 
+extern crate ndarray;
 
 fn main() -> Result<(), Box<dyn Error>> {
 	let name = "Louvain-li-Nux Gamejam 2023";
 	
-	const WIDTH : u32 = 800;
-	const HEIGHT : u32 = 600;
+	const WIDTH: u32 = 800;
+	const HEIGHT: u32 = 600;
 
 	let mut win = aqua::win::Win::new(WIDTH, HEIGHT);
 	win.caption(name);
@@ -32,11 +33,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 	println!("get vk)surface");
 	let surface_khr = vk_context.get_surface_khr();
 
-	let q_familly = vk_context.get_graphic_queue();
+	let q_family = vk_context.get_graphic_queue();
 	// Create the swapchain 
 
 	println!("get format {:?}", surface_khr);
-	println!("LA FAMILLE : {:?}",q_familly);
+	println!("LA FAMILLE : {:?}",q_family);
 
 	let format = {
 		let formats =
@@ -140,7 +141,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	// and get grapgics family
 
 	let command_pool_create_info = ash::vk::CommandPoolCreateInfo::default()
-	.queue_family_index(q_familly)
+	.queue_family_index(q_family)
 	.flags(ash::vk::CommandPoolCreateFlags::empty()); //TODO Check flag...	
 
 	let command_pool_khr =  unsafe { device.create_command_pool(&command_pool_create_info, None)? };
