@@ -9,9 +9,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let name = "Louvain-li-Nux Gamejam 2023";
 	
 	const WIDTH : u32 = 800;
-	const HEIGTH : u32 = 600;
+	const HEIGHT : u32 = 600;
 
-	let mut win = aqua::win::Win::new(WIDTH, HEIGTH);
+	let mut win = aqua::win::Win::new(WIDTH, HEIGHT);
 	win.caption(name);
 
 	println!("get vk_context");
@@ -32,9 +32,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 	println!("get vk)surface");
 	let surface_khr = vk_context.get_surface_khr();
 
+	let q_familly = vk_context.get_graphic_queue();
 	// Create the swapchain 
 
 	println!("get format {:?}", surface_khr);
+	println!("LA FAMILLE : {:?}",q_familly);
 
 	let format = {
 		let formats =
@@ -77,7 +79,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             let min = capabilities.min_image_extent;
             let max = capabilities.max_image_extent;
             let width = WIDTH.min(max.width).max(min.width);
-            let height = HEIGTH.min(max.height).max(min.height);
+            let height = HEIGHT.min(max.height).max(min.height);
             ash::vk::Extent2D { width, height }
         }
     }; 
@@ -109,11 +111,110 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let swapchain_khr = unsafe { swapchain_loader.create_swapchain(&swapchain_create_info, None)? };
 
+	// Create Image & Image views
+	let images = unsafe { swapchain_loader.get_swapchain_images(swapchain_khr)?};
+	let images_view = images
+		.iter()
+		.map(|image| 
+		{
+			let create_info = ash::vk::ImageViewCreateInfo::default()
+				.image(*image)
+				.view_type(ash::vk::ImageViewType::TYPE_2D)
+                .format(format.format)
+				.subresource_range(ash::vk::ImageSubresourceRange
+				{
+					aspect_mask: ash::vk::ImageAspectFlags::COLOR,
+                    base_mip_level: 0,
+                    level_count: 1,
+                    base_array_layer: 0,
+                    layer_count: 1,
+				});
+			
+			unsafe { device.create_image_view(&create_info, None) }
+		}).collect::<Result<std::vec::Vec<_>, _>>()?;
+		
 
-	println!("Ceci est un teste 2");
+	println!("On a crée la swapchain");
 
-	std::thread::sleep(std::time::Duration::from_millis(1000));
+	//Command Pool
+	// and get grapgics family
 
-	unsafe{swapchain_loader.destroy_swapchain(swapchain_khr, None)};
+	let command_pool_create_info = ash::vk::CommandPoolCreateInfo::default()
+	.queue_family_index(q_familly)
+	.flags(ash::vk::CommandPoolCreateFlags::empty()); //TODO Check flag...	
+
+	let command_pool_khr =  unsafe { device.create_command_pool(&command_pool_create_info, None)? };
+
+	println!("Create command pool");
+
+	// Create render pass
+	let attachement_descritor = [ash::vk::AttachmentDescription::default()
+		.format(format.format)
+		.samples(ash::vk::SampleCountFlags::TYPE_1)
+		.load_op(ash::vk::AttachmentLoadOp::CLEAR)
+		.store_op(ash::vk::AttachmentStoreOp::STORE)
+		.stencil_load_op(ash::vk::AttachmentLoadOp::DONT_CARE)
+		.stencil_store_op(ash::vk::AttachmentStoreOp::DONT_CARE)
+        .initial_layout(ash::vk::ImageLayout::UNDEFINED)
+        .final_layout(ash::vk::ImageLayout::PRESENT_SRC_KHR)];
+
+	let attachment_reference = [ash::vk::AttachmentReference::default()
+		.attachment(0)
+		.layout(ash::vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)];
+
+	let subpass_deps = [ash::vk::SubpassDependency::default()
+		.src_subpass(ash::vk::SUBPASS_EXTERNAL)
+        .dst_subpass(0)
+        .src_stage_mask(ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+        .src_access_mask(ash::vk::AccessFlags::empty())
+        .dst_stage_mask(ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+        .dst_access_mask(
+            ash::vk::AccessFlags::COLOR_ATTACHMENT_READ | ash::vk::AccessFlags::COLOR_ATTACHMENT_WRITE,
+        )];
+
+
+	let sub_pass_descriptor = [ash::vk::SubpassDescription::default()
+		.pipeline_bind_point(ash::vk::PipelineBindPoint::GRAPHICS)
+		//.color_attachment_count = 1
+		.color_attachments(&attachment_reference)];
+
+	let render_pass_info = ash::vk::RenderPassCreateInfo::default()
+        .attachments(&attachement_descritor)
+        .subpasses(&sub_pass_descriptor)
+        .dependencies(&subpass_deps);
+	
+	println!("Render pass info  {:?}", render_pass_info);
+
+	let render_pass_khr = unsafe {device.create_render_pass(&render_pass_info, None) ?};
+	println!("Created render pass");
+
+	// Create Frame buffer now
+	let framebuffers = images_view.iter()
+	.map(|view| [*view])
+	.map(|attachments|
+	{
+		let frame_buffer_create_info = ash::vk::FramebufferCreateInfo::default()
+			.render_pass(render_pass_khr)
+			.attachments(&attachments)
+			.width(extent.width)
+			.height(extent.height)
+			.layers(1);
+		println!("Create Info :  {:?}", frame_buffer_create_info);
+		unsafe  {device.create_framebuffer(&frame_buffer_create_info, None)}
+
+	}).collect::<Result<std::vec::Vec<_>, _>>()?;
+
+
+	// OK NOW THE PIPELINE !!!!
+
+	std::thread::sleep(	std::time::Duration::from_millis(1000));
+
+
+	// Destroy things
+	unsafe { swapchain_loader.destroy_swapchain(swapchain_khr, None)};
+	unsafe { device.destroy_command_pool(command_pool_khr, None)};
+	unsafe { device.destroy_render_pass(render_pass_khr, None)};
+	unsafe { images_view.iter().for_each(|v| device.destroy_image_view(*v, None))};
+	unsafe { framebuffers.iter().for_each(|f| device.destroy_framebuffer(*f, None))};
 	Ok(())
 }

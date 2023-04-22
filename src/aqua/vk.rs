@@ -93,6 +93,11 @@ impl VkContext {
 		let addr = aqua::send_device!(self.dev, 0x6773, self.context);
 		unsafe { *std::mem::transmute::<u64, *const ash::vk::SurfaceKHR>(addr) }
 	}
+
+	pub fn get_graphic_queue(&mut self) -> u32 {
+		aqua::send_device!(self.dev, 0x6771, self.context) as u32
+	}
+
 }
 
 impl Drop for VkContext {
