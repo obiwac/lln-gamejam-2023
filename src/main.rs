@@ -30,18 +30,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let surface = &vk_context.get_surface();
 
 	println!("get vk)surface");
-	let vk_surface = vk_context.get_surface_khr();
+	let surface_khr = vk_context.get_surface_khr();
 
 	let q_familly = vk_context.get_graphic_queue();
 	// Create the swapchain 
 
-	println!("LA FAMILLLLLE EST LÀ { }", q_familly);
-
-	println!("get format {:?}", phys_device);
+	println!("get format {:?}", surface_khr);
 
 	let format = {
 		let formats =
-			unsafe { surface.get_physical_device_surface_formats(phys_device, vk_surface)? };
+			unsafe { surface.get_physical_device_surface_formats(phys_device, surface_khr)? };
 		if formats.len() == 1 && formats[0].format == ash::vk::Format::UNDEFINED {
 			ash::vk::SurfaceFormatKHR {
 				format: ash::vk::Format::B8G8R8A8_UNORM,
@@ -61,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let present_mode = {
         let present_modes = unsafe {
             surface
-                .get_physical_device_surface_present_modes(phys_device, vk_surface)
+                .get_physical_device_surface_present_modes(phys_device, surface_khr)
                 .expect("Failed to get physical device surface present modes")
         };
         if present_modes.contains(&ash::vk::PresentModeKHR::IMMEDIATE) {
@@ -71,7 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-	let capabilities = unsafe { surface.get_physical_device_surface_capabilities(phys_device, vk_surface)? };
+	let capabilities = unsafe { surface.get_physical_device_surface_capabilities(phys_device, surface_khr)? };
 		
 	let extent = {
         if capabilities.current_extent.width != std::u32::MAX {
@@ -95,7 +93,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	let swapchain_loader = ash::extensions::khr::Swapchain::new(instance, device); 
 	let swapchain_create_info = ash::vk::SwapchainCreateInfoKHR::default()
-		.surface(vk_surface)
+		.surface(surface_khr)
 		.min_image_count(image_count)
 		.image_format(format.format)
 		.image_color_space(format.color_space)
