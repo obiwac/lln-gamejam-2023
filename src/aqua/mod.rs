@@ -1,5 +1,6 @@
 pub mod win;
 pub mod vk;
+pub mod mouse;
 
 // entry point for the KOS
 

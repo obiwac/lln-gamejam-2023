@@ -9,7 +9,7 @@ pub enum VkContextKind {
 impl VkContextKind {
 	fn to_device_arg(&self) -> u64 {
 		match self {
-			VkContextKind::Win => 0,
+			Self::Win => 0,
 		}
 	}
 }
@@ -94,7 +94,7 @@ impl VkContext {
 		unsafe { *std::mem::transmute::<u64, *const ash::vk::SurfaceKHR>(addr) }
 	}
 
-	pub fn get_graphic_queue(&mut self) -> u32 {
+	pub fn get_queue(&mut self) -> u32 {
 		aqua::send_device!(self.dev, 0x6771, self.context) as u32
 	}
 

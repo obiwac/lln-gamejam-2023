@@ -15,6 +15,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let mut win = aqua::win::Win::new(WIDTH, HEIGHT);
 	win.caption(name);
 
+	let mut mouse = aqua::mouse::Mouse::default();
+	mouse.update();
+	println!("{:}", mouse.poll_axis(aqua::mouse::MouseAxis::X));
+
 	println!("get vk_context");
 	let mut vk_context = aqua::vk::VkContext::new(win, name, 0, 1, 0);
 
@@ -33,7 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	println!("get vk)surface");
 	let surface_khr = vk_context.get_surface_khr();
 
-	let q_family = vk_context.get_graphic_queue();
+	let q_family = vk_context.get_queue();
 	// Create the swapchain 
 
 	println!("get format {:?}", surface_khr);
