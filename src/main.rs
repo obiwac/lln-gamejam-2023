@@ -6,7 +6,11 @@ extern crate ash;
 
 extern crate ndarray;
 
+// struct Test {}
+
 extern "C" fn draw(win: u64, data: u64) -> u64 {
+	// let test: Test = std::mem::transmute(data);
+
 	println!("Draw hook {:} {:}", win, data);
 
 	let mut mouse = aqua::mouse::Mouse::default();
@@ -263,7 +267,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	}*/
 
 
-	std::thread::sleep(	std::time::Duration::from_millis(1000));
+	std::thread::sleep(std::time::Duration::from_millis(1000));
 
 	win.draw_hook(draw, 1337);
 	win.draw_loop();
