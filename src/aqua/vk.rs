@@ -98,6 +98,10 @@ impl VkContext {
 		aqua::send_device!(self.dev, 0x6771, self.context) as u32
 	}
 
+	pub fn get_present_queue(&mut self) -> u32 {
+		aqua::send_device!(self.dev, 0x7071, self.context) as u32
+	}
+
 }
 
 impl Drop for VkContext {
