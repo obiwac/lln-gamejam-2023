@@ -129,7 +129,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 	const WIDTH: u32 = 800;
 	const HEIGHT: u32 = 600;
 
-	let png = aqua::png::Png::from_path("res/pig.png");
+	let mut png = aqua::png::Png::from_path("res/pig.png");
+	let mut png_result = png.draw();
+
+	println!("{:} {:}", png_result.width, png_result.height);
 
 
 	let mut win = aqua::win::Win::new(WIDTH, HEIGHT);
