@@ -2,6 +2,8 @@ extern crate ash;
 
 use aqua;
 
+use crate::send_device;
+
 pub enum VkContextKind {
 	Win
 }
@@ -82,6 +84,15 @@ impl VkContext {
 	pub fn get_surface(&mut self) -> ash::extensions::khr::Surface {
 		let instance = self.get_instance(); // XXX meh, cache this (can I get this from entry instead?)
 		ash::extensions::khr::Surface::new(&self.entry, &instance)
+	}
+
+	unsafe fn get_vk_surface(dev: aqua::Device, context: u64) -> ash::vk::SurfaceKHR {
+		let surface_addr  = aqua::send_device!(dev, 0x6773, context);
+		std::mem::transmute(surface_addr)
+	}
+
+	pub fn get_surface_khr(&mut self) -> ash::vk::SurfaceKHR{
+		unsafe {Self::get_vk_surface(self.dev, self.context)}
 	}
 }
 
