@@ -32,7 +32,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 	println!("get vk)surface");
 	let vk_surface = vk_context.get_surface_khr();
 
+	let q_familly = vk_context.get_graphic_queue();
 	// Create the swapchain 
+
+	println!("LA FAMILLLLLE EST LÀ { }", q_familly);
 
 	println!("get format {:?}", phys_device);
 
@@ -110,7 +113,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let swapchain_khr = unsafe { swapchain_loader.create_swapchain(&swapchain_create_info, None)? };
 
 
-	println!("Ceci est un teste 2");
+	println!("On a crée la swapchain");
+
+	//Command Pool
+	// and get grapgics family
+
+	/*let command_bool_create_info = ash::vk::CommandPoolCreateInfo::default()
+	.queue_family_index(graphics_q_index)
+	.flag(ash::vk::CommandPoolCreateFlags::COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)*/	
 
 	std::thread::sleep(std::time::Duration::from_millis(1000));
 

@@ -97,6 +97,11 @@ impl VkContext {
 	pub fn get_surface_khr(&mut self) -> ash::vk::SurfaceKHR{
 		unsafe {Self::get_vk_surface(self.dev, self.context)}
 	}
+
+	pub fn get_graphic_queue(&mut self) -> u32 {
+		aqua::send_device!(self.dev, 0x6771, self.context) as u32
+	}
+
 }
 
 impl Drop for VkContext {
