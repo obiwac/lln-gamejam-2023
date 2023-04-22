@@ -8,6 +8,12 @@ extern crate ndarray;
 
 extern "C" fn draw(win: u64, data: u64) -> u64 {
 	println!("Draw hook {:} {:}", win, data);
+
+	let mut mouse = aqua::mouse::Mouse::default();
+	mouse.update();
+
+	println!("{:}", mouse.poll_axis(aqua::mouse::MouseAxis::X));
+
 	0
 }
 
