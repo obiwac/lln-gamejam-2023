@@ -6,17 +6,38 @@ extern crate ash;
 
 extern crate ndarray;
 
+struct Test {
+	ash::vk::SemaphoreCreateInfo
+}
+
+extern "C" fn draw(win: u64, data: u64) -> u64 {
+	// let test: Test = std::mem::transmute(data);
+
+	println!("Draw hook {:} {:}", win, data);
+
+	let mut mouse = aqua::mouse::Mouse::default();
+	mouse.update();
+
+	println!("{:}", mouse.poll_axis(aqua::mouse::MouseAxis::X));
+
+	0
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
 	let name = "Louvain-li-Nux Gamejam 2023";
 	
 	const WIDTH: u32 = 800;
 	const HEIGHT: u32 = 600;
 
+	let png = aqua::png::Png::from_path("res/pig.png");
+
+	return Ok(());
+
 	let mut win = aqua::win::Win::new(WIDTH, HEIGHT);
 	win.caption(name);
 
 	println!("get vk_context");
-	let mut vk_context = aqua::vk::VkContext::new(win, name, 0, 1, 0);
+	let mut vk_context = aqua::vk::VkContext::new(&win, name, 0, 1, 0);
 
 	println!("get instance");
 	let instance = &vk_context.get_instance();
@@ -33,12 +54,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 	println!("get vk)surface");
 	let surface_khr = vk_context.get_surface_khr();
 
-	let q_family_index = vk_context.get_graphic_queue();
+	let q_family_index = vk_context.get_graphics_queue();
 	let q_present_index = vk_context.get_present_queue();
 
 	let q_family = unsafe { device.get_device_queue(q_family_index, 0) };
 	let q_present = unsafe { device.get_device_queue(q_present_index, 0)};
-
 	// Create the swapchain 
 
 	println!("get format {:?}", surface_khr);
@@ -328,8 +348,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	}
 
-	std::thread::sleep(	std::time::Duration::from_millis(1000));
+	std::thread::sleep(std::time::Duration::from_millis(1000));
 
+	win.draw_hook(draw, 1337);
+	win.draw_loop();
 
 	// Destroy things
 	unsafe { swapchain_loader.destroy_swapchain(swapchain_khr, None) };

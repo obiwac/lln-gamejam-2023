@@ -9,7 +9,7 @@ pub enum VkContextKind {
 impl VkContextKind {
 	fn to_device_arg(&self) -> u64 {
 		match self {
-			VkContextKind::Win => 0,
+			Self::Win => 0,
 		}
 	}
 }
@@ -22,7 +22,7 @@ pub struct VkContext {
 }
 
 impl VkContext {
-	pub fn new(win: aqua::win::Win, name: &str, ver_major: u32, ver_minor: u32, ver_patch: u32) -> VkContext {
+	pub fn new(win: &aqua::win::Win, name: &str, ver_major: u32, ver_minor: u32, ver_patch: u32) -> VkContext {
 		let kind = VkContextKind::Win;
 		let c_str = std::ffi::CString::new(name).unwrap();
 
@@ -94,7 +94,7 @@ impl VkContext {
 		unsafe { *std::mem::transmute::<u64, *const ash::vk::SurfaceKHR>(addr) }
 	}
 
-	pub fn get_graphic_queue(&mut self) -> u32 {
+	pub fn get_queue(&mut self) -> u32 {
 		aqua::send_device!(self.dev, 0x6771, self.context) as u32
 	}
 
