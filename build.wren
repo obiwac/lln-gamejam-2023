@@ -10,7 +10,7 @@ Deps.git_inherit("https://github.com/inobulles/iar")
 
 var rustc = RustC.new()
 
-rustc.add_dep("ash", "https://github.com/ash-rs/ash")
+rustc.add_dep("ash", "https://github.com/obiwac/ash-aqua")
 
 var src = ["src/main.rs"]
 

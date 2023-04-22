@@ -67,8 +67,20 @@ impl VkContext {
 		unsafe { ash::Instance::load(&static_fn, instance) }
 	}
 
+	unsafe fn get_vk_device(dev: aqua::Device, context: u64) -> ash::vk::Device {
+		let device_addr = aqua::send_device!(dev, 0x6763, context);
+		std::mem::transmute(device_addr)
+	}
+
+	pub fn get_device(&mut self) -> ash::Device {
+		let instance = self.get_instance(); // XXX meh, cache this (can I get this from entry instead?)
+		let device = unsafe { Self::get_vk_device(self.dev, self.context) };
+
+		unsafe { ash::Device::load(&instance.instance_fn_1_0, device) }
+	}
+
 	pub fn get_surface(&mut self) -> ash::extensions::khr::Surface {
-		let instance = self.get_instance(); // XXX meh, cache this
+		let instance = self.get_instance(); // XXX meh, cache this (can I get this from entry instead?)
 		ash::extensions::khr::Surface::new(&self.entry, &instance)
 	}
 }
