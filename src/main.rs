@@ -33,11 +33,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 	println!("get vk)surface");
 	let surface_khr = vk_context.get_surface_khr();
 
-	let q_family = vk_context.get_graphic_queue();
+	let q_family_index = vk_context.get_graphic_queue();
+	let q_present_index = vk_context.get_present_queue();
+
+	let q_family = unsafe { device.get_device_queue(q_family_index, 0) };
+	let q_present = unsafe { device.get_device_queue(q_present_index, 0)};
+
 	// Create the swapchain 
 
 	println!("get format {:?}", surface_khr);
-	println!("LA FAMILLE : {:?}",q_family);
+	println!("LA FAMILLE : {:?}",q_family_index);
 
 	let format = {
 		let formats =
@@ -141,7 +146,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	// and get grapgics family
 
 	let command_pool_create_info = ash::vk::CommandPoolCreateInfo::default()
-	.queue_family_index(q_family)
+	.queue_family_index(q_family_index)
 	.flags(ash::vk::CommandPoolCreateFlags::empty()); //TODO Check flag...	
 
 	let command_pool_khr =  unsafe { device.create_command_pool(&command_pool_create_info, None)? };
@@ -225,32 +230,103 @@ fn main() -> Result<(), Box<dyn Error>> {
 	// Start the rendering ......;
 	// All clean and submit all model to the current buffer ....
 	println!("Number of frame buffer & command buffer : {:?}", command_buffers.iter().len());
-	/*
-	for (index, buffer) in command_buffers.iter().enumerate()
-	{
-		let buff = *buffer;
 
+
+	let image_available_semaphore = {
+		let semaphore_create_info = ash::vk::SemaphoreCreateInfo::default(); 
+		//TODO :     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		unsafe { device.create_semaphore(&semaphore_create_info, None) ?}
+	};
+
+	let render_finished_semaphore = {
+		let semaphore_create_info = ash::vk::SemaphoreCreateInfo::default(); 
+		unsafe { device.create_semaphore(&semaphore_create_info, None) ?}
+	};
+
+	let in_flight_fence =  {
+		let fence_info = ash::vk::FenceCreateInfo::default()
+		.flags(ash::vk::FenceCreateFlags::SIGNALED); // Tricks to not wait for the first render
+		unsafe { device.create_fence(&fence_info, None) ?}
+	};
+
+	while( true ){
+		unsafe { device.wait_for_fences(&[in_flight_fence], true, std::u64::MAX)? };
+		unsafe {device.reset_fences(&[in_flight_fence]) ?};
+
+		let next_image_frame = unsafe 
+		{
+			swapchain_loader.acquire_next_image(
+				swapchain_khr,
+				std::u64::MAX,
+				image_available_semaphore,
+				ash::vk::Fence::null(),
+			)
+		};
+
+
+		let image_index = match next_image_frame {
+            Ok((image_index, _)) => image_index,
+            Err(ash::vk::Result::ERROR_OUT_OF_DATE_KHR) => {
+                return Ok(());
+            }
+            Err(error) => panic!("Error while acquiring next image. Cause: {}", error),
+        };
+		//* HOPE next_image_frame has not failed ... 
+		
+		let current_command_buffer = command_buffers[image_index as usize];
+
+
+		// Reset the command buffer ....
+		// Start a new record wouhouuuu
 		let command_buffer_begin_info = ash::vk::CommandBufferBeginInfo::default()
 			.flags(ash::vk::CommandBufferUsageFlags::SIMULTANEOUS_USE);
-		unsafe { device.begin_command_buffer(buffer, &command_buffer_begin_info) ?}
+
+		unsafe { device.begin_command_buffer(current_command_buffer, &command_buffer_begin_info) ?}
 
 		let render_pass_begin_info = ash::vk::RenderPassBeginInfo::default()
 			.render_pass(render_pass_khr)
-			.framebuffer(framebuffers[index])
-			.render_area(ash::vk::Rect2D{
-				offset : ash::vk::Offset2D {x : 0, y : 0},
-				extent,
-			})
-			.clear_values(&[ash::vk::ClearValue {
-				color : ash::vk::ClearColorValue{
-					float32 : [0.5f32, 0.5f32, 0.5f32, 1.0f32], // Clear values
-				},
-			}]);
+			.framebuffer(framebuffers[image_index as usize])
+			.render_area(ash::vk::Rect2D{ offset : ash::vk::Offset2D {x : 0, y : 0}, extent})
+			.clear_values(&[ash::vk::ClearValue { color : ash::vk::ClearColorValue{ float32 : [1.0f32, 1.0f32, 1.0f32, 1.0f32]},}]);
 
-		// Here begin the affaires
+		// Begin
+		unsafe { device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE ) };
+		
+		// Bind pipeline 
+		// Draw 
+		// .......
+		// End
+		unsafe { device.cmd_end_render_pass(current_command_buffer) };
+		unsafe { device.end_command_buffer(current_command_buffer)? };
 
-	}*/
+		let a_available_semaphore = [image_available_semaphore]; 
+		let a_current_command_buffer = [current_command_buffer]; 
+		let a_render_finished_semaphore = [render_finished_semaphore];
+		let a_swapchain_khr = [swapchain_khr];
+		let a_image_index = [image_index];
+		// Submit the command buffer
+		let submit_info = [ash::vk::SubmitInfo::default()
+			.wait_semaphores(&a_available_semaphore)
+			.wait_dst_stage_mask(&[ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT])
+			.command_buffers(&a_current_command_buffer)
+			.signal_semaphores(&a_render_finished_semaphore)
+			];
+		
+		unsafe  { device.queue_submit(q_family, &submit_info, in_flight_fence) }; // TODO HMMM
 
+		// AND NOW PRESENT
+		let present_info = ash::vk::PresentInfoKHR::default()
+			.wait_semaphores(&a_render_finished_semaphore)
+			.swapchains(&a_swapchain_khr) 
+			.image_indices(&a_image_index);
+		
+		let present_result = unsafe  
+		{
+			swapchain_loader.queue_present(q_present, &present_info)
+		};
+		
+
+	}
 
 	std::thread::sleep(	std::time::Duration::from_millis(1000));
 
@@ -262,5 +338,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 	unsafe { images_view.iter().for_each(|v| device.destroy_image_view(*v, None)) };
 	unsafe { framebuffers.iter().for_each(|f| device.destroy_framebuffer(*f, None)) };
 	unsafe { device.destroy_pipeline_layout(pipeline_layout, None) };
+	unsafe {device.destroy_semaphore(image_available_semaphore, None)};
+	unsafe {device.destroy_semaphore(render_finished_semaphore, None)};
+	unsafe {device.destroy_fence(in_flight_fence, None)};
 	Ok(())
 }
