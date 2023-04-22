@@ -27,6 +27,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 	const WIDTH: u32 = 800;
 	const HEIGHT: u32 = 600;
 
+	let png = aqua::png::Png::from_path("res/pig.png");
+
+	return Ok(());
+
 	let mut win = aqua::win::Win::new(WIDTH, HEIGHT);
 	win.caption(name);
 
