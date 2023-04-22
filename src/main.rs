@@ -211,15 +211,60 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
 	// OK NOW THE PIPELINE !!!!
+	//TODO FOR SHADER !!!!
+	let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::default();
+	let pipeline_layout = unsafe { device.create_pipeline_layout(&pipeline_layout_info, None) ?};
+
+
+	// Command buffer
+	let command_buffers = 
+	{
+		let allocation_info = ash::vk::CommandBufferAllocateInfo::default() 
+			.command_pool(command_pool_khr)
+			.level(ash::vk::CommandBufferLevel::PRIMARY)
+			.command_buffer_count(images.len() as _);
+		unsafe { device.allocate_command_buffers(&allocation_info) ?}
+	};
+
+	// Start the rendering ......;
+	// All clean and submit all model to the current buffer ....
+	println!("Number of frame buffer & command buffer : {:?}", command_buffers.iter().len());
+	/*
+	for (index, buffer) in command_buffers.iter().enumerate()
+	{
+		let buff = *buffer;
+
+		let command_buffer_begin_info = ash::vk::CommandBufferBeginInfo::default()
+			.flags(ash::vk::CommandBufferUsageFlags::SIMULTANEOUS_USE);
+		unsafe { device.begin_command_buffer(buffer, &command_buffer_begin_info) ?}
+
+		let render_pass_begin_info = ash::vk::RenderPassBeginInfo::default()
+			.render_pass(render_pass_khr)
+			.framebuffer(framebuffers[index])
+			.render_area(ash::vk::Rect2D{
+				offset : ash::vk::Offset2D {x : 0, y : 0},
+				extent,
+			})
+			.clear_values(&[ash::vk::ClearValue {
+				color : ash::vk::ClearColorValue{
+					float32 : [0.5f32, 0.5f32, 0.5f32, 1.0f32], // Clear values
+				},
+			}]);
+
+		// Here begin the affaires
+
+	}*/
+
 
 	std::thread::sleep(	std::time::Duration::from_millis(1000));
 
 
 	// Destroy things
-	unsafe { swapchain_loader.destroy_swapchain(swapchain_khr, None)};
-	unsafe { device.destroy_command_pool(command_pool_khr, None)};
-	unsafe { device.destroy_render_pass(render_pass_khr, None)};
-	unsafe { images_view.iter().for_each(|v| device.destroy_image_view(*v, None))};
-	unsafe { framebuffers.iter().for_each(|f| device.destroy_framebuffer(*f, None))};
+	unsafe { swapchain_loader.destroy_swapchain(swapchain_khr, None) };
+	unsafe { device.destroy_command_pool(command_pool_khr, None) };
+	unsafe { device.destroy_render_pass(render_pass_khr, None) };
+	unsafe { images_view.iter().for_each(|v| device.destroy_image_view(*v, None)) };
+	unsafe { framebuffers.iter().for_each(|f| device.destroy_framebuffer(*f, None)) };
+	unsafe { device.destroy_pipeline_layout(pipeline_layout, None) };
 	Ok(())
 }
