@@ -1,10 +1,17 @@
-
-
-
 // dependencies
 
 Deps.git_inherit("https://github.com/inobulles/aqua-unix")
 Deps.git_inherit("https://github.com/inobulles/iar")
+
+// shader compilation
+
+var glsl_src = File.list("src/shaders")
+	.where { |path| path.endsWith(".vert") || path.endsWith(".frag") }
+
+System.print("gsdlugliksjfhgklsdfhgjkdsfg")
+
+glsl_src
+	.each { |path| File.exec("glslc", [path, "-o", "%(path).spv"]) }
 
 // compilation
 
