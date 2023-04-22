@@ -10,14 +10,27 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let mut win = aqua::win::Win::new(800, 600);
 	win.caption(name);
 
+	println!("get vk_context");
 	let mut vk_context = aqua::vk::VkContext::new(win, name, 0, 1, 0);
+
+	println!("get instance");
 	let instance = &vk_context.get_instance();
+
+	println!("get device");
 	let device = &vk_context.get_device();
+
+	println!("get physical device");
 	let phys_device = vk_context.get_phys_device();
+
+	println!("get surface");
 	let surface = &vk_context.get_surface();
+
+	println!("get vk)surface");
 	let vk_surface = vk_context.get_surface_khr();
 
 	// Create the swapchain 
+
+	println!("get format");
 
 	let format = {
 		let formats =
