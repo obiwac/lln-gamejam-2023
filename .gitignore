@@ -4,3 +4,4 @@ Cargo.lock
 *.core
 target
 blender
+*.spv

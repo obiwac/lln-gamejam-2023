@@ -1,16 +1,22 @@
-
-
-
 // dependencies
 
 Deps.git_inherit("https://github.com/inobulles/aqua-unix")
 Deps.git_inherit("https://github.com/inobulles/iar")
+
+// shader compilation
+
+var glsl_src = File.list("src/shaders")
+	.where { |path| path.endsWith(".vert") || path.endsWith(".frag") }
+
+glsl_src
+	.each { |path| File.exec("glslc", [path, "-o", "%(path).spv"]) }
 
 // compilation
 
 var rustc = RustC.new()
 
 rustc.add_dep("ash", "https://github.com/obiwac/ash-aqua")
+rustc.add_dep("ndarray", "https://github.com/rust-ndarray/ndarray")
 
 var src = ["src/main.rs"]
 
