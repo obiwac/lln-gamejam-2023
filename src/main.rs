@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let device = &vk_context.get_device();
 
 	println!("get physical device");
-	let phys_device = *vk_context.get_phys_device();
+	let phys_device = vk_context.get_phys_device();
 
 	println!("get surface");
 	let surface = &vk_context.get_surface();
@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	// Create the swapchain 
 
-	println!("get format");
+	println!("get format {:?}", phys_device);
 
 	let format = {
 		let formats =

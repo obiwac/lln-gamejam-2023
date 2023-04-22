@@ -79,9 +79,9 @@ impl VkContext {
 		unsafe { ash::Device::load(&instance.instance_fn_1_0, device) }
 	}
 
-	pub fn get_phys_device(&mut self) -> &ash::vk::PhysicalDevice {
+	pub fn get_phys_device(&mut self) -> ash::vk::PhysicalDevice {
 		let phys_device_addr = aqua::send_device!(self.dev, 0x6770, self.context);
-		unsafe { std::mem::transmute(phys_device_addr) }
+		unsafe { *std::mem::transmute::<u64, *const ash::vk::PhysicalDevice>(phys_device_addr) }
 	}
 
 	pub fn get_surface(&mut self) -> ash::extensions::khr::Surface {
