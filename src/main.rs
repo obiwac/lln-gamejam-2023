@@ -34,8 +34,24 @@ pub struct Context<'a> {
 	player: player::Player,
 }
 
-fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
-{
+static mut test: f32 = 0.0;
+
+fn draw(ctx: &mut Context) -> Result<(), Box<dyn Error>> {
+	unsafe {
+		ctx.player.p_mat.identity();
+		ctx.player.p_mat.perspective(90.0, 800.0 / 600.0, 0.1, 500.0);
+
+		ctx.player.mv_mat.identity();
+		ctx.player.mv_mat.translate(0.0, 0.0, -1.0);
+		ctx.player.mv_mat.rotate_2d(test + 6.28 / 4.0, (test / 3.0 * 2.0).sin() / 2.0);
+
+		test += 0.001;
+	}
+
+	let mvp_mat = ctx.player.p_mat.mul(&ctx.player.mv_mat);
+
+	// cursed Vulkan shit
+
 	unsafe { ctx.device.wait_for_fences(&[ctx.in_flight_fence], true, std::u64::MAX)? };
 	unsafe {ctx.device.reset_fences(&[ctx.in_flight_fence]) ?};
 
@@ -58,13 +74,10 @@ fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 	};
 	//* HOPE next_image_frame has not failed ... 
 	
-	let current_command_buffer = ctx.command_buffers[image_index as usize];
-
-
 	// Reset the command buffer ....
 	// Start a new record wouhouuuu
 
-	// Begin
+	let current_command_buffer = ctx.command_buffers[image_index as usize];
 
 	unsafe {
 		let command_buffer_begin_info = ash::vk::CommandBufferBeginInfo::default()
@@ -80,6 +93,9 @@ fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 
 		ctx.device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE);
 		ctx.device.cmd_bind_pipeline(current_command_buffer, ash::vk::PipelineBindPoint::GRAPHICS, ctx.shader.pipeline);
+
+		let raw_mat: &[u8] = std::mem::transmute(mvp.mat);
+		ctx.device.cmd_push_constants(current_command_buffer, ctx.shader.vert_pipeline_layout, ash::vk::ShaderStageFlags::VERTEX, 0, 64, raw_mat);
 
 		ctx.device.cmd_set_viewport(current_command_buffer, 0, &ctx.shader.viewports);
 		ctx.device.cmd_set_scissor(current_command_buffer, 0, &ctx.shader.scissors);
@@ -124,7 +140,7 @@ fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 }
 
 extern "C" fn draw_wrapper(win: u64, data: u64) -> u64 {
-	let ctx: &Context = unsafe { std::mem::transmute(data) };
+	let mut ctx: &mut Context = unsafe { std::mem::transmute(data) };
 
 	let mut mouse = aqua::mouse::Mouse::default();
 	mouse.update();
@@ -352,7 +368,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 	// All clean and submit all model to the current buffer ....
 	println!("Number of frame buffer & command buffer : {:?}", command_buffers.iter().len());
 
-
 	let image_available_semaphore = {
 		let semaphore_create_info = ash::vk::SemaphoreCreateInfo::default(); 
 		//TODO :     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -379,7 +394,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	};
 
 	let shader = shader::Shader::new(&device, extent, render_pass_khr, "src/shaders/shader.vert.spv", "src/shaders/shader.frag.spv")?;
-	let player = player::Player::new();
+	let mut player = player::Player::new();
 
 	let context = Context{
 		image_available_semaphore : image_available_semaphore,

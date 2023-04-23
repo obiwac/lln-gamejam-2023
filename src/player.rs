@@ -112,15 +112,15 @@ impl Mat {
 }
 
 pub struct Player {
-	pub mv_matrix: Mat,
-	pub p_matrix: Mat,
+	pub mv_mat: Mat,
+	pub p_mat: Mat,
 }
 
 impl Player {
 	pub fn new() -> Player {
 		Player {
-			mv_matrix: Mat::new(),
-			p_matrix: Mat::new(),
+			mv_mat: Mat::new(),
+			p_mat: Mat::new(),
 		}
 	}
 }
