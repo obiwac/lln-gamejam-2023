@@ -9,6 +9,14 @@ impl Mat {
 		}
 	}
 
+	pub fn clear(&mut self) {
+		for i in 0..4 {
+			for j in 0..4 {
+				self.mat[i][j] = 0.0;
+			}
+		}
+	}
+
 	pub fn frustum(&mut self, left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) {
 		let dx = right - left;
 		let dy = top - bottom;
