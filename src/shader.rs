@@ -5,7 +5,9 @@ extern crate ash;
 
 pub struct Shader<'a> {
 	context: &'a Context<'a>,
-	pipeline_layout: ash::vk::PipelineLayout,
+
+	vert_pipeline_layout: ash::vk::PipelineLayout,
+	frag_pipeline_layout: ash::vk::PipelineLayout,
 }
 
 impl Shader<'_> {
@@ -14,10 +16,13 @@ impl Shader<'_> {
 		Ok(ash::util::read_spv(&mut cursor)?)
 	}
 
-	pub fn new<'a>(context: &'a Context<'a>, vert_path: &'a str, frag_path: &'a str) -> Result<Shader<'a>, Box<dyn Error>> {
+	fn load_shader(context: &Context, path: &str) -> Result<(
+		ash::vk::ShaderModule,
+		ash::vk::PipelineLayout,
+	), Box<dyn Error>> {
 		// read shader source
 
-		let bytes = std::fs::read(vert_path).expect("can't open file");
+		let bytes = std::fs::read(path).expect("can't open file");
 		let src = Self::read_shader_from_bytes(&bytes[..])?;
 
 		// info & module
@@ -33,9 +38,41 @@ impl Shader<'_> {
 		let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::default();
 		let pipeline_layout = unsafe { context.device.create_pipeline_layout(&pipeline_layout_info, None)? };
 
+		Ok((
+			module,
+			pipeline_layout,
+		))
+	}
+
+	pub fn new<'a>(context: &'a Context<'a>, vert_path: &'a str, frag_path: &'a str) -> Result<Shader<'a>, Box<dyn Error>> {
+		let (vert_module, vert_pipeline_layout) = Self::load_shader(context, vert_path).unwrap();
+		let (frag_module, frag_pipeline_layout) = Self::load_shader(context, frag_path).unwrap();
+
+		// shader entry
+
+		let entry_name = unsafe { std::ffi::CStr::from_bytes_with_nul_unchecked(b"main\0") };
+
+		let stage_create_infos = [
+			ash::vk::PipelineShaderStageCreateInfo {
+				module: vert_module,
+				p_name: entry_name.as_ptr(),
+				stage: ash::vk::ShaderStageFlags::VERTEX,
+				..Default::default()
+			},
+			ash::vk::PipelineShaderStageCreateInfo {
+				s_type: ash::vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
+				module: vert_module,
+				p_name: entry_name.as_ptr(),
+				stage: ash::vk::ShaderStageFlags::FRAGMENT,
+				..Default::default()
+			},
+		];
+
 		Ok(Shader {
 			context: context,
-			pipeline_layout: pipeline_layout,
+
+			vert_pipeline_layout: vert_pipeline_layout,
+			frag_pipeline_layout: frag_pipeline_layout,
 		})
 	}
 }
@@ -43,7 +80,8 @@ impl Shader<'_> {
 impl Drop for Shader<'_> {
 	fn drop(&mut self) {
 		unsafe {
-			self.context.device.destroy_pipeline_layout(self.pipeline_layout, None);
+			self.context.device.destroy_pipeline_layout(self.vert_pipeline_layout, None);
+			self.context.device.destroy_pipeline_layout(self.frag_pipeline_layout, None);
 		}
 	}
 }
