@@ -41,6 +41,12 @@ impl Mat {
 		mat
 	}
 
+	pub fn translate(&mut self, x: f32, y: f32, z: f32) {
+		for i in 0..4 {
+			self.mat[3][i] += self.mat[0][i] * x + self.mat[1][i] * y + self.mat[2][i] * z;
+		}
+	}
+
 	pub fn frustum(&mut self, left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) {
 		let dx = right - left;
 		let dy = top - bottom;
