@@ -370,7 +370,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		unsafe { device.create_fence(&fence_info, None) ?}
 	};
 
-	let index_buffer_data = [0u32, 1, 4];
+	let index_buffer_data = [0u32, 1, 2];
 	let ibo = buffers::Indexbuffer::new(device, memory_properties, index_buffer_data.to_vec());
 
 	// Create depth resources :
@@ -379,7 +379,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 	};
 
 	let shader = shader::Shader::new(&device, extent, render_pass_khr, "src/shaders/shader.vert.spv", "src/shaders/shader.frag.spv")?;
-	println!("\n\n\n\n\n\n");
 
 	let context = Context{
 		image_available_semaphore : image_available_semaphore,
