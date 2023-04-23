@@ -2,11 +2,14 @@ mod aqua;
 use std ::{
 	error::Error,
 };
+
+mod shader;
+
 extern crate ash;
 
 extern crate ndarray;
 
-struct Context<'a> {
+pub struct Context<'a> {
 	image_available_semaphore: ash::vk::Semaphore, 
 	render_finished_semaphore: ash::vk::Semaphore, 
 	in_flight_fence : ash::vk::Fence,
@@ -26,7 +29,7 @@ struct Context<'a> {
 }
 
 
-fn draw_frame(ctx : &Context) -> Result<(), Box<dyn Error>>
+fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 {
 	unsafe { ctx.device.wait_for_fences(&[ctx.in_flight_fence], true, std::u64::MAX)? };
 	unsafe {ctx.device.reset_fences(&[ctx.in_flight_fence]) ?};
@@ -107,14 +110,14 @@ fn draw_frame(ctx : &Context) -> Result<(), Box<dyn Error>>
 
 }
 
-extern "C" fn draw(win: u64, data: u64) -> u64 {
+extern "C" fn draw_wrapper(win: u64, data: u64) -> u64 {
 	let ctx: &Context = unsafe { std::mem::transmute(data) };
 
 	let mut mouse = aqua::mouse::Mouse::default();
 	mouse.update();
 
 	/**********************************************************************/
-	draw_frame(ctx);
+	draw(ctx);
 	0
 }
 
@@ -328,12 +331,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 	}).collect::<Result<std::vec::Vec<_>, _>>()?;
 
 
-	// OK NOW THE PIPELINE !!!!
-	//TODO FOR SHADER !!!!
-	let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::default();
-	let pipeline_layout = unsafe { device.create_pipeline_layout(&pipeline_layout_info, None) ?};
-
-
 	// Command buffer
 	let command_buffers = 
 	{
@@ -380,8 +377,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 		swapchain_khr : swapchain_khr,
 		swapchain_loader :  &swapchain_loader,
 	};
+
+	let shader = shader::Shader::new(&context, "src/shaders/shader.vert.spv", "src/shaders/shader.frag.spv");
+	println!("\n\n\n\n\n\n");
+
+	// draw loop
 	
-	win.draw_hook(draw, unsafe { std::mem::transmute(&context)});
+	win.draw_hook(draw_wrapper, unsafe { std::mem::transmute(&context)});
 	win.draw_loop();
 
 	// Destroy things
@@ -390,7 +392,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 	unsafe { device.destroy_render_pass(render_pass_khr, None) };
 	unsafe { images_view.iter().for_each(|v| device.destroy_image_view(*v, None)) };
 	unsafe { framebuffers.iter().for_each(|f| device.destroy_framebuffer(*f, None)) };
-	unsafe { device.destroy_pipeline_layout(pipeline_layout, None) };
 	unsafe {device.destroy_semaphore(image_available_semaphore, None)};
 	unsafe {device.destroy_semaphore(render_finished_semaphore, None)};
 	unsafe {device.destroy_fence(in_flight_fence, None)};
