@@ -54,14 +54,15 @@ impl Shader<'_> {
 
 		let stage_create_infos = [
 			ash::vk::PipelineShaderStageCreateInfo {
+				// s_type: ash::vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
 				module: vert_module,
 				p_name: entry_name.as_ptr(),
 				stage: ash::vk::ShaderStageFlags::VERTEX,
 				..Default::default()
 			},
 			ash::vk::PipelineShaderStageCreateInfo {
-				s_type: ash::vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
-				module: vert_module,
+				// s_type: ash::vk::StructureType::PIPELINE_SHADER_STAGE_CREATE_INFO,
+				module: frag_module,
 				p_name: entry_name.as_ptr(),
 				stage: ash::vk::ShaderStageFlags::FRAGMENT,
 				..Default::default()
