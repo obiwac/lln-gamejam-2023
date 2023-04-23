@@ -29,8 +29,10 @@ pub struct Context<'a> {
 	extent : ash::vk::Extent2D,
 	q_family : ash::vk::Queue,
 	q_present : ash::vk::Queue,
-}
 
+	ibo: buffers::Indexbuffer,
+	shader: shader::Shader<'a>,
+}
 
 fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 {
@@ -46,7 +48,6 @@ fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 			ash::vk::Fence::null(),
 		)
 	};
-
 
 	let image_index = match next_image_frame {
 		Ok((image_index, _)) => image_index,
@@ -74,14 +75,22 @@ fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 		.clear_values(&[ash::vk::ClearValue { color : ash::vk::ClearColorValue{ float32 : [1.0f32, 1.0f32, 1.0f32, 1.0f32]},}]);
 
 	// Begin
-	unsafe { ctx.device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE ) };
-	
-	// Bind pipeline 
-	// Draw 
-	// .......
-	// End
-	unsafe { ctx.device.cmd_end_render_pass(current_command_buffer) };
-	unsafe { ctx.device.end_command_buffer(current_command_buffer)? };
+
+	unsafe {
+		ctx.device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE);
+		ctx.device.cmd_bind_pipeline(current_command_buffer, ash::vk::PipelineBindPoint::GRAPHICS, ctx.shader.pipeline);
+
+		ctx.device.cmd_set_viewport(current_command_buffer, 0, &ctx.shader.viewports);
+		ctx.device.cmd_set_scissor(current_command_buffer, 0, &ctx.shader.scissors);
+
+		ctx.device.cmd_bind_index_buffer(current_command_buffer, ctx.ibo.ibo, 0, ash::vk::IndexType::UINT32);
+		ctx.device.cmd_draw_indexed(current_command_buffer, 6, 1, 0, 0, 1);
+
+		// ctx.device.cmd_draw(current_command_buffer, 3, 1, 0, 0);
+
+		ctx.device.cmd_end_render_pass(current_command_buffer);
+		ctx.device.end_command_buffer(current_command_buffer)?;
+	}
 
 	let a_available_semaphore = [ctx.image_available_semaphore]; 
 	let a_current_command_buffer = [current_command_buffer]; 
@@ -118,6 +127,10 @@ extern "C" fn draw_wrapper(win: u64, data: u64) -> u64 {
 
 	let mut mouse = aqua::mouse::Mouse::default();
 	mouse.update();
+
+	if mouse.poll_button(aqua::mouse::MouseButton::Left) {
+		return 1;
+	}
 
 	/**********************************************************************/
 	draw(ctx);
@@ -364,6 +377,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	};
 
+	let shader = shader::Shader::new(&device, extent, render_pass_khr, "src/shaders/shader.vert.spv", "src/shaders/shader.frag.spv")?;
+	println!("\n\n\n\n\n\n");
+
 	let context = Context{
 		image_available_semaphore : image_available_semaphore,
 		command_buffers : command_buffers,
@@ -377,10 +393,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 		render_pass_khr : render_pass_khr, 
 		swapchain_khr : swapchain_khr,
 		swapchain_loader :  &swapchain_loader,
+		ibo: ibo.unwrap(),
+		shader: shader,
 	};
-
-	let shader = shader::Shader::new(&context, "src/shaders/shader.vert.spv", "src/shaders/shader.frag.spv");
-	println!("\n\n\n\n\n\n");
 
 	// draw loop
 	
@@ -388,6 +403,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	win.draw_loop();
 
 	// Destroy things
+
 	unsafe { swapchain_loader.destroy_swapchain(swapchain_khr, None) };
 	unsafe { device.destroy_command_pool(command_pool_khr, None) };
 	unsafe { device.destroy_render_pass(render_pass_khr, None) };

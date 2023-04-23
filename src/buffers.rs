@@ -11,8 +11,8 @@ use std ::{
 
 
 pub struct Indexbuffer{
-	indexBuffer : ash::vk::Buffer,
-	indexBufferMemory : ash::vk::DeviceMemory,
+	pub ibo : ash::vk::Buffer,
+	pub ibo_mem : ash::vk::DeviceMemory,
 }
 
 impl Indexbuffer{
@@ -47,8 +47,8 @@ impl Indexbuffer{
 		unsafe { device.bind_buffer_memory(index_buffer, index_buffer_memory, 0).unwrap() };
 
 		Ok(Indexbuffer{
-			indexBuffer : index_buffer,
-			indexBufferMemory : index_buffer_memory,
+			ibo : index_buffer,
+			ibo_mem : index_buffer_memory,
 		})
 	}
 }
