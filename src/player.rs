@@ -47,7 +47,7 @@ impl Mat {
 		}
 	}
 
-	pub fn rotate(&mut self, mut angle: f32, mut x: f32, mut y: f32, mut z: f32) -> Mat {
+	pub fn rotate(&mut self, angle: f32, mut x: f32, mut y: f32, mut z: f32) -> Mat {
 		let magnitude = (x * x + y * y + z * z).sqrt();
 
 		x /= -magnitude;
@@ -79,6 +79,12 @@ impl Mat {
 		mat.mat[3][3] = 1.0;
 
 		self.mul(&mat)
+	}
+
+	pub fn rotate_2d(&mut self, x: f32, y: f32) -> Mat {
+		self
+			.rotate(x, 0.0, 1.0, 0.0)
+			.rotate(-y, x.cos(), 0.0, x.sin())
 	}
 
 	pub fn frustum(&mut self, left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) {
