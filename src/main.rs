@@ -43,7 +43,7 @@ fn draw(ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 
 		ctx.player.mv_mat.identity();
 		ctx.player.mv_mat.translate(0.0, 0.0, -1.0);
-		ctx.player.mv_mat.rotate_2d(test + 6.28 / 4.0, (test / 3.0 * 2.0).sin() / 2.0);
+		ctx.player.mv_mat = ctx.player.mv_mat.rotate_2d(test + 6.28 / 4.0, (test / 3.0 * 2.0).sin() / 2.0);
 
 		test += 0.001;
 	}
@@ -84,7 +84,9 @@ fn draw(ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 			.flags(ash::vk::CommandBufferUsageFlags::SIMULTANEOUS_USE);
 
 		ctx.device.begin_command_buffer(current_command_buffer, &command_buffer_begin_info)?;
+		let raw_mat: [u8; 64] = std::mem::transmute(mvp_mat.mat);
 
+		ctx.device.cmd_push_constants(current_command_buffer, ctx.shader.vert_pipeline_layout, ash::vk::ShaderStageFlags::VERTEX, 0, &raw_mat);
 		let render_pass_begin_info = ash::vk::RenderPassBeginInfo::default()
 			.render_pass(ctx.render_pass_khr)
 			.framebuffer(ctx.framebuffers[image_index as usize])
@@ -93,9 +95,6 @@ fn draw(ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 
 		ctx.device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE);
 		ctx.device.cmd_bind_pipeline(current_command_buffer, ash::vk::PipelineBindPoint::GRAPHICS, ctx.shader.pipeline);
-
-		let raw_mat: &[u8] = std::mem::transmute(mvp.mat);
-		ctx.device.cmd_push_constants(current_command_buffer, ctx.shader.vert_pipeline_layout, ash::vk::ShaderStageFlags::VERTEX, 0, 64, raw_mat);
 
 		ctx.device.cmd_set_viewport(current_command_buffer, 0, &ctx.shader.viewports);
 		ctx.device.cmd_set_scissor(current_command_buffer, 0, &ctx.shader.scissors);
@@ -469,6 +468,25 @@ fn main() -> Result<(), Box<dyn Error>> {
 		player: player,
 	};
 
+	let sampler_info = ash::vk::SamplerCreateInfo::default()
+		.mag_filter(ash::vk::Filter::LINEAR) 
+		.min_filter(ash::vk::Filter::LINEAR)
+		.address_mode_u(ash::vk::SamplerAddressMode::REPEAT)
+		.address_mode_v(ash::vk::SamplerAddressMode::REPEAT)
+		.address_mode_w(ash::vk::SamplerAddressMode::REPEAT)
+		.anisotropy_enable(false)
+		.border_color(ash::vk::BorderColor::INT_OPAQUE_BLACK)
+		.unnormalized_coordinates(false)
+		.compare_enable(false)
+		.compare_op(ash::vk::CompareOp::ALWAYS)
+		.mipmap_mode(ash::vk::SamplerMipmapMode::LINEAR)
+		.mip_lod_bias(0.0f32)
+		.min_lod(0.0f32)
+		.max_lod(0.0f32); 
+
+	let sampler_khr = unsafe {device.create_sampler(&sampler_info, None) ?};
+
+
 	// draw loop
 	
 	win.draw_hook(draw_wrapper, unsafe { std::mem::transmute(&context)});
@@ -484,5 +502,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 	unsafe {device.destroy_semaphore(image_available_semaphore, None)};
 	unsafe {device.destroy_semaphore(render_finished_semaphore, None)};
 	unsafe {device.destroy_fence(in_flight_fence, None)};
+	unsafe {device.destroy_sampler(sampler_khr, None)};
 	Ok(())
 }

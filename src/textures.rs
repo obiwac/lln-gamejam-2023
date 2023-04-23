@@ -2,13 +2,11 @@
 #[path = "aqua/png.rs"] mod png;
 
 
-use ash::util::*;
-use std::default::Default;
 use std ::{
 	error::Error,
 };
 
-use std::ptr::copy_nonoverlapping as memcpy;
+use std::ptr::copy_nonoverlapping;
 
 extern crate ash;
 pub struct Texture {
@@ -39,7 +37,7 @@ impl Texture {
     
         device.begin_command_buffer(command_buffer, &info)?;
     
-        Ok((command_buffer))
+        Ok(command_buffer)
     }
 
     pub unsafe fn end_single_time_commands(
@@ -175,39 +173,39 @@ impl Texture {
         // CREATE STAGGING BUFFER
 
         let buffer_info = ash::vk::BufferCreateInfo::default()
-        .size(png_result.bpp/8)
-        .usage(ash::vk::Format::R8G8B8A8_SRGB)
+        .size((png_result.bpp/8 * image_extent.width * image_extent.height) as u64)
+        .usage(ash::vk::BufferUsageFlags::TRANSFER_SRC)
         .sharing_mode(ash::vk::SharingMode::EXCLUSIVE);
 
-        let staging_buffer = device.create_buffer(&buffer_info, None)?;
+        let staging_buffer = unsafe { device.create_buffer(&buffer_info, None).unwrap() };
 
         // Memory
 
-        let requirements = device.get_buffer_memory_requirements(staging_buffer);
+        let requirements = unsafe { device.get_buffer_memory_requirements(staging_buffer) };
 
         let memory_info = ash::vk::MemoryAllocateInfo::default()
             .allocation_size(requirements.size)
-            .memory_type_index(utils::find_memory_type(requirements, memory_properties, requirements));
+            .memory_type_index(utils::find_memory_type(requirements, memory_properties, ash::vk::MemoryPropertyFlags::HOST_COHERENT | ash::vk::MemoryPropertyFlags::HOST_VISIBLE));
 
-        let staging_buffer_memory = device.allocate_memory(&memory_info, None)?;
+        let staging_buffer_memory = unsafe { device.allocate_memory(&memory_info, None).unwrap() } ;
 
-        device.bind_buffer_memory(staging_buffer, staging_buffer_memory, 0)?;
+        unsafe { device.bind_buffer_memory(staging_buffer, staging_buffer_memory, 0).unwrap() };
 
         // Copy (staging)
 
-        let memory = device.map_memory(staging_buffer_memory, 0, png_result.bpp/8, ash::vk::MemoryMapFlags::empty())?;
+        let memory = unsafe { device.map_memory(staging_buffer_memory, 0, (png_result.bpp/8 * image_extent.width * image_extent.height) as u64, ash::vk::MemoryMapFlags::empty()).unwrap() };
 
-        memcpy(png_result.buf, memory.cast(), png_result.bpp/8);
+        unsafe { copy_nonoverlapping(png_result.buf.as_ptr(), memory.cast(), (png_result.bpp/8 * image_extent.width * image_extent.height) as usize) };
 
-        device.unmap_memory(staging_buffer_memory);
+        unsafe { device.unmap_memory(staging_buffer_memory) };
 
-        //Create Immage
+        //Create Image
 
         let info = ash::vk::ImageCreateInfo::default()
-        .image_type(ash::vk::ImageType::_2D)
+        .image_type(ash::vk::ImageType::TYPE_2D)
         .extent(ash::vk::Extent3D {
-            extends.width,
-            extends.height,
+            width : image_extent.width,
+            height : image_extent.height,
             depth: 1,
         })
         .mip_levels(1)
@@ -217,54 +215,56 @@ impl Texture {
         .initial_layout(ash::vk::ImageLayout::UNDEFINED)
         .usage( ash::vk::ImageUsageFlags::SAMPLED | ash::vk::ImageUsageFlags::TRANSFER_DST)
         .sharing_mode(ash::vk::SharingMode::EXCLUSIVE)
-        .samples(ash::vk::SampleCountFlags::_1);
+        .samples(ash::vk::SampleCountFlags::TYPE_1);
 
-    let texture_image = device.create_image(&info, None)?;
+        let texture_image = unsafe { device.create_image(&info, None).unwrap() };
 
-    // Memory
+        // Memory
 
-    let requirements = device.get_image_memory_requirements(texture_image);
+        let requirements = unsafe { device.get_image_memory_requirements(texture_image) };
 
-    let info = ash::vk::MemoryAllocateInfo::builder()
-        .allocation_size(requirements.size)
-        .memory_type_index(utils::find_memory_type(requirements, memory_properties, requirements));
+        let info = ash::vk::MemoryAllocateInfo::default()
+            .allocation_size(requirements.size)
+            .memory_type_index(utils::find_memory_type(requirements, memory_properties, ash::vk::MemoryPropertyFlags::HOST_COHERENT | ash::vk::MemoryPropertyFlags::HOST_VISIBLE));
 
-    let texture_image_memory = device.allocate_memory(&info, None)?;
+        let texture_image_memory = unsafe { device.allocate_memory(&info, None).unwrap() };
 
-    device.bind_image_memory(texture_image, texture_image_memory, 0)?;
+        unsafe { device.bind_image_memory(texture_image, texture_image_memory, 0).unwrap() };
 
-    //texture_image, texture_image_memory
-    //Ok((image, image_memory))
-
-
-    unsafe{
-        Self::transition_image_layout(
-            device,
-            texture_image,
-            ash::vk::Format::R8G8B8A8_SRGB,
-            ash::vk::ImageLayout::UNDEFINED,
-            ash::vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            command_pool,
-            graphic_queue
-        ).unwrap();
-    }
-    //TODO FAIRE LE TRUC DU MEC AY DESSUS
-    unsafe { Self::copy_buffer_to_image(device, staging_buffer, texture_image, image_extent.width, image_extent.height, command_pool, graphic_queue).unwrap() };
+        unsafe{
+            Self::transition_image_layout(
+                device,
+                texture_image,
+                ash::vk::Format::R8G8B8A8_SRGB,
+                ash::vk::ImageLayout::UNDEFINED,
+                ash::vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                command_pool,
+                graphic_queue
+            ).unwrap();
+        }
+        //TODO FAIRE LE TRUC DU MEC AY DESSUS
+        unsafe { Self::copy_buffer_to_image(device, staging_buffer, texture_image, image_extent.width, image_extent.height, command_pool, graphic_queue).unwrap() };
 
 
-    unsafe{
-        Self::transition_image_layout(
-            device,
-            texture_image,
-            ash::vk::Format::R8G8B8A8_SRGB,
-            ash::vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            ash::vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
-            command_pool,
-            graphic_queue
-        ).unwrap();
-    }
-
+        unsafe{
+            Self::transition_image_layout(
+                device,
+                texture_image,
+                ash::vk::Format::R8G8B8A8_SRGB,
+                ash::vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                ash::vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+                command_pool,
+                graphic_queue
+            ).unwrap();
+        }
     
+        unsafe 
+        {   
+            device.destroy_buffer(staging_buffer, None);
+            device.free_memory(staging_buffer_memory, None);
+        }
+
+        //* CE QU'ON RECUÉPÈRE:  data.texture_image */
     }
 
     fn create_image_view( image : ash::vk::Image, format : ash::vk::Format, aspectFlags : ash::vk::ImageAspectFlags) 

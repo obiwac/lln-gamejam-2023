@@ -19,6 +19,6 @@ vec3 colours[3] = vec3[](
 );
 
 void main() {
-	gl_Position = mvp * vec4(pos[gl_VertexIndex], 1.);
+	gl_Position = matrices.mvp * vec4(pos[gl_VertexIndex], 1.);
 	interp_colour = colours[gl_VertexIndex];
 }

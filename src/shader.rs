@@ -42,7 +42,16 @@ impl Shader<'_> {
 
 		// pipeline here
 
-		let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::default();
+		let push_constant_range = ash::vk::PushConstantRange::default()
+			.stage_flags(ash::vk::ShaderStageFlags::VERTEX)
+			.offset(0)
+			.size(64);
+
+		let push_constant_ranges = &[push_constant_range];
+
+		let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::default()
+			.push_constant_ranges(push_constant_ranges);
+
 		let pipeline_layout = unsafe { device.create_pipeline_layout(&pipeline_layout_info, None)? };
 
 		Ok((
@@ -116,7 +125,7 @@ impl Shader<'_> {
 		let rasterization_info = ash::vk::PipelineRasterizationStateCreateInfo {
 			polygon_mode: ash::vk::PolygonMode::FILL,
 			line_width: 1.0,
-			cull_mode: ash::vk::CullModeFlags::BACK,
+			cull_mode: ash::vk::CullModeFlags::NONE,
 			front_face: ash::vk::FrontFace::COUNTER_CLOCKWISE,
 			depth_bias_constant_factor: 0.0,
 			depth_bias_clamp: 0.0,
