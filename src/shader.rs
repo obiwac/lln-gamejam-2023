@@ -47,7 +47,9 @@ impl Shader<'_> {
 			.offset(0)
 			.size(64);
 
-		let push_constant_ranges = &[push_constant_range];
+		let push_constant_ranges = &[
+			vert_push_constant_range,
+		];
 
 		let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::default()
 			.push_constant_ranges(push_constant_ranges);
@@ -60,7 +62,7 @@ impl Shader<'_> {
 		))
 	}
 
-	pub fn new<'a>(device: &'a ash::Device, extent: ash::vk::Extent2D, renderpass: ash::vk::RenderPass, vert_path: &'a str, frag_path: &'a str) -> Result<Shader<'a>, Box<dyn Error>> {
+	pub fn new<'a>(device: &'a ash::Device, extent: ash::vk::Extent2D, renderpass: ash::vk::RenderPass, descriptor_set: u64, vert_path: &'a str, frag_path: &'a str) -> Result<Shader<'a>, Box<dyn Error>> {
 		let (vert_module, vert_pipeline_layout) = Self::load_shader(device, vert_path).unwrap();
 		let (frag_module, frag_pipeline_layout) = Self::load_shader(device, frag_path).unwrap();
 
@@ -192,6 +194,8 @@ impl Shader<'_> {
 			.dynamic_state(&dynamic_info)
 			.layout(vert_pipeline_layout)
 			.render_pass(renderpass);
+
+
 
 		let pipelines = unsafe { device
 			.create_graphics_pipelines(ash::vk::PipelineCache::null(), &[graphic_pipeline_info], None)

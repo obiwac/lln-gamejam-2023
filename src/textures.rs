@@ -11,9 +11,7 @@ use std::ptr::copy_nonoverlapping;
 extern crate ash;
 pub struct Texture {
     pub image:  ash::vk::Image,
-    pub memory: ash::vk::DeviceMemory,
     pub view: ash::vk::ImageView,
-    pub sampler: Option<ash::vk::Sampler>,
 }
 
 
@@ -162,7 +160,9 @@ impl Texture {
     }
 
 
-    pub fn create_image_from_path(graphic_queue : ash::vk::Queue , device : &ash::Device,  memory_properties : ash::vk::PhysicalDeviceMemoryProperties, command_pool : ash::vk::CommandPool, path : String){
+    pub fn create_image_from_path(graphic_queue : ash::vk::Queue , device : &ash::Device,  memory_properties : ash::vk::PhysicalDeviceMemoryProperties, command_pool : ash::vk::CommandPool, path : String)
+     -> Result<Texture, Box<dyn Error>>
+      {
         println!("sssssssssssssssssss");
         let mut png = png::Png::from_path(&path);
         println!("pdosfo^ids^dso^dsdsf");
@@ -263,8 +263,26 @@ impl Texture {
             device.destroy_buffer(staging_buffer, None);
             device.free_memory(staging_buffer_memory, None);
         }
+        let subressource_range = ash::vk::ImageSubresourceRange::default()
+            .aspect_mask(ash::vk::ImageAspectFlags::COLOR)
+            .base_mip_level(0u32)
+            .level_count(1u32)
+            .base_array_layer(0u32)
+            .layer_count(1u32);
+
+        let image_view_info = ash::vk::ImageViewCreateInfo::default()
+        .image(texture_image)
+        .view_type(ash::vk::ImageViewType::TYPE_2D)
+        .format(ash::vk::Format::R8G8B8A8_SRGB)
+        .subresource_range(subressource_range);
+
+        let image_view = unsafe {device.create_image_view(&image_view_info, None).unwrap() };
 
         //* CE QU'ON RECUÉPÈRE:  data.texture_image */
+        Ok(Texture{
+            image: texture_image,
+            view : image_view,
+        })
     }
 
     fn create_image_view( image : ash::vk::Image, format : ash::vk::Format, aspectFlags : ash::vk::ImageAspectFlags) 
