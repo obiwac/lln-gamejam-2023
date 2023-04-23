@@ -1,4 +1,7 @@
 mod aqua;
+mod textures;
+mod buffers;
+
 use std ::{
 	error::Error,
 };
@@ -136,22 +139,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let mut win = aqua::win::Win::new(WIDTH, HEIGHT);
 	win.caption(name);
 
-	println!("get vk_context");
 	let mut vk_context = aqua::vk::VkContext::new(&win, name, 0, 1, 0);
-
-	println!("get instance");
 	let instance = &vk_context.get_instance();
-
-	println!("get device");
 	let device = &vk_context.get_device();
-
-	println!("get physical device");
 	let phys_device = vk_context.get_phys_device();
-
-	println!("get surface");
 	let surface = &vk_context.get_surface();
-
-	println!("get vk)surface");
 	let surface_khr = vk_context.get_surface_khr();
 
 	let q_family_index = vk_context.get_graphics_queue();
@@ -159,10 +151,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	let q_family = unsafe { device.get_device_queue(q_family_index, 0) };
 	let q_present = unsafe { device.get_device_queue(q_present_index, 0)};
+
+	let memory_properties = unsafe { instance.get_physical_device_memory_properties(phys_device) };
+	println!("Memory propperties {:?}", memory_properties);
 	// Create the swapchain 
 
-	println!("get format {:?}", surface_khr);
-	println!("LA FAMILLE : {:?}",q_family_index);
 
 	let format = {
 		let formats =
@@ -361,6 +354,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 		let fence_info = ash::vk::FenceCreateInfo::default()
 		.flags(ash::vk::FenceCreateFlags::SIGNALED); // Tricks to not wait for the first render
 		unsafe { device.create_fence(&fence_info, None) ?}
+	};
+
+	let index_buffer_data = [0u32, 1, 2];
+	buffers::Indexbuffer::new(device, memory_properties, index_buffer_data.to_vec());
+
+	// Create depth ressources : 	
+	let depth_format = {
+
 	};
 
 	let context = Context{
