@@ -63,20 +63,21 @@ fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 
 	// Reset the command buffer ....
 	// Start a new record wouhouuuu
-	let command_buffer_begin_info = ash::vk::CommandBufferBeginInfo::default()
-		.flags(ash::vk::CommandBufferUsageFlags::SIMULTANEOUS_USE);
-
-	unsafe { ctx.device.begin_command_buffer(current_command_buffer, &command_buffer_begin_info) ?}
-
-	let render_pass_begin_info = ash::vk::RenderPassBeginInfo::default()
-		.render_pass(ctx.render_pass_khr)
-		.framebuffer(ctx.framebuffers[image_index as usize])
-		.render_area(ash::vk::Rect2D{ offset : ash::vk::Offset2D {x : 0, y : 0}, extent: ctx.extent})
-		.clear_values(&[ash::vk::ClearValue { color : ash::vk::ClearColorValue{ float32 : [1.0f32, 1.0f32, 1.0f32, 1.0f32]},}]);
 
 	// Begin
 
 	unsafe {
+		let command_buffer_begin_info = ash::vk::CommandBufferBeginInfo::default()
+			.flags(ash::vk::CommandBufferUsageFlags::SIMULTANEOUS_USE);
+
+		ctx.device.begin_command_buffer(current_command_buffer, &command_buffer_begin_info)?;
+
+		let render_pass_begin_info = ash::vk::RenderPassBeginInfo::default()
+			.render_pass(ctx.render_pass_khr)
+			.framebuffer(ctx.framebuffers[image_index as usize])
+			.render_area(ash::vk::Rect2D{ offset : ash::vk::Offset2D {x : 0, y : 0}, extent: ctx.extent})
+			.clear_values(&[ash::vk::ClearValue { color : ash::vk::ClearColorValue{ float32: [0.0f32, 0.0f32, 1.0f32, 1.0f32]},}]);
+
 		ctx.device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE);
 		ctx.device.cmd_bind_pipeline(current_command_buffer, ash::vk::PipelineBindPoint::GRAPHICS, ctx.shader.pipeline);
 
@@ -369,7 +370,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		unsafe { device.create_fence(&fence_info, None) ?}
 	};
 
-	let index_buffer_data = [0u32, 1, 2];
+	let index_buffer_data = [0u32, 1, 4];
 	let ibo = buffers::Indexbuffer::new(device, memory_properties, index_buffer_data.to_vec());
 
 	// Create depth resources :
