@@ -48,7 +48,7 @@ impl Shader<'_> {
 			.size(64);
 
 		let push_constant_ranges = &[
-			vert_push_constant_range,
+			push_constant_range,
 		];
 
 		let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::default()

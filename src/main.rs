@@ -100,14 +100,7 @@ fn draw(ctx: &mut Context) -> Result<(), Box<dyn Error>> {
             &raw_mat,
         );
 
-		ctx.device.cmd_bind_descriptor_sets(
-			current_command_buffer,
-			ash::vk::PipelineBindPoint::GRAPHICS,
-			ctx.shader.frag_pipeline_layout,
-			0,
-			&descriptor_sets[..],
-			&[],
-		);
+	
 
         let render_pass_begin_info = ash::vk::RenderPassBeginInfo::default()
             .render_pass(ctx.render_pass_khr)
