@@ -43,9 +43,9 @@ fn draw(ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 
 		ctx.player.mv_mat.identity();
 		ctx.player.mv_mat.translate(0.0, 0.0, -1.0);
-		ctx.player.mv_mat = ctx.player.mv_mat.rotate_2d(test + 6.28 / 4.0, (test / 3.0 * 2.0).sin() / 2.0);
+		ctx.player.mv_mat = ctx.player.mv_mat.rotate_2d(test * 6.28 + 6.28 / 4.0, (test / 3.0 * 2.0).sin() / 2.0);
 
-		test += 0.001;
+		test += 0.00001;
 	}
 
 	let mvp_mat = ctx.player.p_mat.mul(&ctx.player.mv_mat);
@@ -444,8 +444,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 		extent.width, extent.height, ash::vk::Format::D32_SFLOAT, ash::vk::ImageTiling::OPTIMAL, ash::vk::ImageType::TYPE_2D
 	,1 , ash::vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,  ash::vk::SampleCountFlags::TYPE_1);
 	*/
-	println!("ojides^jio^idfsodfsoojidfs");
-	textures::Texture::create_image_from_path(q_family, device, memory_properties, command_pool_khr, "res/pig.png".to_string());
 
 	let shader = shader::Shader::new(&device, extent, render_pass_khr, "src/shaders/shader.vert.spv", "src/shaders/shader.frag.spv")?;
 	let mut player = player::Player::new();
