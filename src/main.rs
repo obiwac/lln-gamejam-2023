@@ -1,6 +1,7 @@
 mod aqua;
 mod textures;
 mod buffers;
+mod player;
 
 use std ::{
 	error::Error,
@@ -32,6 +33,7 @@ pub struct Context<'a> {
 
 	ibo: buffers::Indexbuffer,
 	shader: shader::Shader<'a>,
+	player: player::Player,
 }
 
 fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
@@ -379,6 +381,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	};
 
 	let shader = shader::Shader::new(&device, extent, render_pass_khr, "src/shaders/shader.vert.spv", "src/shaders/shader.frag.spv")?;
+	let player = player::Player::new();
 
 	let context = Context{
 		image_available_semaphore : image_available_semaphore,
@@ -395,6 +398,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		swapchain_loader :  &swapchain_loader,
 		ibo: ibo.unwrap(),
 		shader: shader,
+		player: player,
 	};
 
 	// draw loop

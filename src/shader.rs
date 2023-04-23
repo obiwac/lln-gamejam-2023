@@ -8,8 +8,8 @@ pub struct Shader<'a> {
 	vert_module: ash::vk::ShaderModule,
 	frag_module: ash::vk::ShaderModule,
 
-	vert_pipeline_layout: ash::vk::PipelineLayout,
-	frag_pipeline_layout: ash::vk::PipelineLayout,
+	pub vert_pipeline_layout: ash::vk::PipelineLayout,
+	pub frag_pipeline_layout: ash::vk::PipelineLayout,
 
 	pub pipeline: ash::vk::Pipeline,
 
