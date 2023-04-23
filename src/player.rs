@@ -47,6 +47,40 @@ impl Mat {
 		}
 	}
 
+	pub fn rotate(&mut self, mut angle: f32, mut x: f32, mut y: f32, mut z: f32) -> Mat {
+		let magnitude = (x * x + y * y + z * z).sqrt();
+
+		x /= -magnitude;
+		y /= -magnitude;
+		z /= -magnitude;
+
+		let s = angle.sin();
+		let c = angle.cos(); // TODO possible optimization
+		let one_minus_c = 1.0 - c;
+
+		let xx = x * x; let yy = y * y; let zz = z * z;
+		let xy = x * y; let yz = y * z; let zx = z * x;
+		let xs = x * s; let ys = y * s; let zs = z * s;
+
+		let mut mat = Mat::new(); // no need for this to be the identity matrix
+
+		mat.mat[0][0] = (one_minus_c * xx) + c;
+		mat.mat[0][1] = (one_minus_c * xy) - zs;
+		mat.mat[0][2] = (one_minus_c * zx) + ys;
+
+		mat.mat[1][0] = (one_minus_c * xy) + zs;
+		mat.mat[1][1] = (one_minus_c * yy) + c;
+		mat.mat[1][2] = (one_minus_c * yz) - xs;
+
+		mat.mat[2][0] = (one_minus_c * zx) - ys;
+		mat.mat[2][1] = (one_minus_c * yz) + xs;
+		mat.mat[2][2] = (one_minus_c * zz) + c;
+
+		mat.mat[3][3] = 1.0;
+
+		self.mul(&mat)
+	}
+
 	pub fn frustum(&mut self, left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) {
 		let dx = right - left;
 		let dy = top - bottom;
