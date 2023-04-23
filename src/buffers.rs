@@ -15,6 +15,15 @@ pub struct Indexbuffer{
     indexBufferMemory : ash::vk::DeviceMemory,
 }
 
+pub struct Vertexbuffer{
+    vertexBuffer : ash::vk::Buffer,
+    vertexMemory : ash::vk::DeviceMemory,
+}
+
+impl Vertexbuffer{
+    
+}
+
 impl Indexbuffer{
     //TODO REMOVE PUB
     pub fn new(device : &ash::Device, memory_properties : ash::vk::PhysicalDeviceMemoryProperties, indices : std::vec::Vec<u32> ) -> Result<Indexbuffer,

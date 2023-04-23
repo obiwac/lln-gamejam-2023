@@ -1,6 +1,7 @@
 mod aqua;
 mod textures;
 mod buffers;
+mod utils;
 
 use std ::{
 	error::Error,
@@ -124,16 +125,64 @@ extern "C" fn draw_wrapper(win: u64, data: u64) -> u64 {
 	0
 }
 
+#[allow(clippy::too_many_arguments)]
+pub fn record_submit_commandbuffer<F: FnOnce(&ash::Device, ash::vk::CommandBuffer)>(
+    device: &ash::Device,
+    command_buffer: ash::vk::CommandBuffer,
+    command_buffer_reuse_fence: ash::vk::Fence,
+    submit_queue: ash::vk::Queue,
+    wait_mask: &[ash::vk::PipelineStageFlags],
+    wait_semaphores: &[ash::vk::Semaphore],
+    signal_semaphores: &[ash::vk::Semaphore],
+    f: F,
+) {
+    unsafe {
+        device
+            .wait_for_fences(&[command_buffer_reuse_fence], true, std::u64::MAX)
+            .expect("Wait for fence failed.");
+
+        device
+            .reset_fences(&[command_buffer_reuse_fence])
+            .expect("Reset fences failed.");
+
+        device
+            .reset_command_buffer(
+                command_buffer,
+                ash::vk::CommandBufferResetFlags::RELEASE_RESOURCES,
+            )
+            .expect("Reset command buffer failed.");
+
+        let command_buffer_begin_info = ash::vk::CommandBufferBeginInfo::default()
+            .flags(ash::vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
+
+        device
+            .begin_command_buffer(command_buffer, &command_buffer_begin_info)
+            .expect("Begin commandbuffer");
+        f(device, command_buffer);
+        device
+            .end_command_buffer(command_buffer)
+            .expect("End commandbuffer");
+
+        let command_buffers = vec![command_buffer];
+
+        let submit_info = ash::vk::SubmitInfo::default()
+            .wait_semaphores(wait_semaphores)
+            .wait_dst_stage_mask(wait_mask)
+            .command_buffers(&command_buffers)
+            .signal_semaphores(signal_semaphores);
+
+        device
+            .queue_submit(submit_queue, &[submit_info], command_buffer_reuse_fence)
+            .expect("queue submit failed.");
+    }
+}
 fn main() -> Result<(), Box<dyn Error>> {
 	let name = "Louvain-li-Nux Gamejam 2023";
 	
 	const WIDTH: u32 = 800;
 	const HEIGHT: u32 = 600;
 
-	let mut png = aqua::png::Png::from_path("res/pig.png");
-	let mut png_result = png.draw();
-
-	println!("{:} {:}", png_result.width, png_result.height);
+	
 
 
 	let mut win = aqua::win::Win::new(WIDTH, HEIGHT);
@@ -334,6 +383,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 		unsafe { device.allocate_command_buffers(&allocation_info) ?}
 	};
 
+	
+	let setup_command_buffer = command_buffers[0];
+	let draw_command_buffer = command_buffers[1];
+
 	// Start the rendering ......;
 	// All clean and submit all model to the current buffer ....
 	println!("Number of frame buffer & command buffer : {:?}", command_buffers.iter().len());
@@ -360,9 +413,81 @@ fn main() -> Result<(), Box<dyn Error>> {
 	buffers::Indexbuffer::new(device, memory_properties, index_buffer_data.to_vec());
 
 	// Create depth ressources : 	
-	let depth_format = {
+	/*textures::Texture::create_image(device, memory_properties, ash::vk::MemoryPropertyFlags::DEVICE_LOCAL,
+		extent.width, extent.height, ash::vk::Format::D32_SFLOAT, ash::vk::ImageTiling::OPTIMAL, ash::vk::ImageType::TYPE_2D
+	,1 , ash::vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,  ash::vk::SampleCountFlags::TYPE_1);
+	*/
 
-	};
+	let depth_image_create_info = ash::vk::ImageCreateInfo::default()
+		.image_type(ash::vk::ImageType::TYPE_2D)
+		.format(ash::vk::Format::D16_UNORM)
+		.extent(ash::vk::Extent3D{
+			width : extent.width,
+			height : extent.height,
+			depth : 1,  
+		})
+		.mip_levels(1)
+		.array_layers(1)
+		.samples(ash::vk::SampleCountFlags::TYPE_1)
+		.tiling(ash::vk::ImageTiling::OPTIMAL)
+		.usage(ash::vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT)
+		.sharing_mode(ash::vk::SharingMode::EXCLUSIVE);
+
+	let depth_image = unsafe { device.create_image(&depth_image_create_info, None).unwrap() };
+	let depth_image_memory_req = unsafe { device.get_image_memory_requirements(depth_image) };
+	let depth_image_memory_index = utils:: find_memory_type(
+		depth_image_memory_req,
+		memory_properties,
+		ash::vk::MemoryPropertyFlags::DEVICE_LOCAL,
+	);
+
+	let depth_image_allocate_info = unsafe  { ash::vk::MemoryAllocateInfo::default().allocation_size(depth_image_memory_req.size).memory_type_index(depth_image_memory_index) };
+	let depth_image_memory = unsafe  { device.allocate_memory(&depth_image_allocate_info, None).unwrap() };
+	unsafe { device.bind_image_memory(depth_image, depth_image_memory, 0) };
+
+	let fence_create_info =
+	ash::vk::FenceCreateInfo::default().flags(ash::vk::FenceCreateFlags::SIGNALED);
+	let draw_commands_reuse_fence = unsafe { device.create_fence(&fence_create_info, None).expect("Create fence failed.") };
+	let setup_commands_reuse_fence = unsafe { device.create_fence(&fence_create_info, None).expect("Create fence failed.") };
+	/* 
+	record_submit_commandbuffer(
+		&device,
+		setup_command_buffer,
+		setup_commands_reuse_fence,
+		q_present,
+		&[],
+		&[],
+		&[],
+		|device, setup_command_buffer| {
+			let layout_transition_barriers = ash::vk::ImageMemoryBarrier::default()
+				.image(depth_image)
+				.dst_access_mask(
+					ash::vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ
+						| ash::vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
+				)
+				.new_layout(ash::vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+				.old_layout(ash::vk::ImageLayout::UNDEFINED)
+				.subresource_range(
+					ash::vk::ImageSubresourceRange::default()
+						.aspect_mask(ash::vk::ImageAspectFlags::DEPTH)
+						.layer_count(1)
+						.level_count(1),
+				);
+			unsafe {
+				device.cmd_pipeline_barrier(
+					setup_command_buffer,
+					ash::vk::PipelineStageFlags::BOTTOM_OF_PIPE,
+					ash::vk::PipelineStageFlags::LATE_FRAGMENT_TESTS,
+					ash::vk::DependencyFlags::empty(),
+					&[],
+					&[],
+					&[layout_transition_barriers],
+				);
+			}
+		},
+	);*/
+
+
 
 	let context = Context{
 		image_available_semaphore : image_available_semaphore,
