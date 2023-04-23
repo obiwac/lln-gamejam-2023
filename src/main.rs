@@ -113,9 +113,6 @@ extern "C" fn draw(win: u64, data: u64) -> u64 {
 	let mut mouse = aqua::mouse::Mouse::default();
 	mouse.update();
 
-	//println!("{:}", mouse.poll_axis(aqua::mouse::MouseAxis::X));
-
-
 	/**********************************************************************/
 	draw_frame(ctx);
 	0
@@ -383,7 +380,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 		swapchain_khr : swapchain_khr,
 		swapchain_loader :  &swapchain_loader,
 	};
-	std::thread::sleep(std::time::Duration::from_millis(1000));
 	
 	win.draw_hook(draw, unsafe { std::mem::transmute(&context)});
 	win.draw_loop();
