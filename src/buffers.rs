@@ -10,7 +10,6 @@ use std ::{
 };
 
 
-
 pub struct Indexbuffer{
     indexBuffer : ash::vk::Buffer,
     indexBufferMemory : ash::vk::DeviceMemory,
