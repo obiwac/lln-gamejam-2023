@@ -8,9 +8,7 @@ pub struct Shader<'a> {
 	vert_module: ash::vk::ShaderModule,
 	frag_module: ash::vk::ShaderModule,
 
-	pub vert_pipeline_layout: ash::vk::PipelineLayout,
-	pub frag_pipeline_layout: ash::vk::PipelineLayout,
-
+	pub pipeline_layout: ash::vk::PipelineLayout,
 	pub pipeline: ash::vk::Pipeline,
 
 	pub viewports: [ash::vk::Viewport; 1],
@@ -23,10 +21,7 @@ impl Shader<'_> {
 		Ok(ash::util::read_spv(&mut cursor)?)
 	}
 
-	fn load_shader(device: &ash::Device, path: &str) -> Result<(
-		ash::vk::ShaderModule,
-		ash::vk::PipelineLayout,
-	), Box<dyn Error>> {
+	fn load_shader(device: &ash::Device, path: &str) -> Result<ash::vk::ShaderModule, Box<dyn Error>> {
 		// read shader source
 
 		let bytes = std::fs::read(path).expect("can't open file");
@@ -40,31 +35,12 @@ impl Shader<'_> {
 			.create_shader_module(&info, None)
 			.expect("can't create shader module") };
 
-		// pipeline here
-
-		let push_constant_range = ash::vk::PushConstantRange::default()
-			.stage_flags(ash::vk::ShaderStageFlags::VERTEX)
-			.offset(0)
-			.size(64);
-
-		let push_constant_ranges = &[
-			vert_push_constant_range,
-		];
-
-		let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::default()
-			.push_constant_ranges(push_constant_ranges);
-
-		let pipeline_layout = unsafe { device.create_pipeline_layout(&pipeline_layout_info, None)? };
-
-		Ok((
-			module,
-			pipeline_layout,
-		))
+		Ok(module)
 	}
 
-	pub fn new<'a>(device: &'a ash::Device, extent: ash::vk::Extent2D, renderpass: ash::vk::RenderPass, descriptor_set: u64, vert_path: &'a str, frag_path: &'a str) -> Result<Shader<'a>, Box<dyn Error>> {
-		let (vert_module, vert_pipeline_layout) = Self::load_shader(device, vert_path).unwrap();
-		let (frag_module, frag_pipeline_layout) = Self::load_shader(device, frag_path).unwrap();
+	pub fn new<'a>(device: &'a ash::Device, extent: ash::vk::Extent2D, renderpass: ash::vk::RenderPass, descriptor_layouts: &[ash::vk::DescriptorSetLayout], vert_path: &'a str, frag_path: &'a str) -> Result<Shader<'a>, Box<dyn Error>> {
+		let vert_module = Self::load_shader(device, vert_path).unwrap();
+		let frag_module = Self::load_shader(device, frag_path).unwrap();
 
 		// shader entry
 
@@ -86,6 +62,23 @@ impl Shader<'_> {
 				..Default::default()
 			},
 		];
+
+		// pipeline here
+
+		let vert_push_constant_range = ash::vk::PushConstantRange::default()
+			.stage_flags(ash::vk::ShaderStageFlags::VERTEX)
+			.offset(0)
+			.size(64);
+
+		let vert_push_constant_ranges = &[
+			vert_push_constant_range,
+		];
+
+		let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::default()
+			.push_constant_ranges(vert_push_constant_ranges)
+			.set_layouts(&descriptor_layouts[..]);
+
+		let pipeline_layout = unsafe { device.create_pipeline_layout(&pipeline_layout_info, None)? };
 
 		// vertex input info
 
@@ -192,10 +185,8 @@ impl Shader<'_> {
 			.depth_stencil_state(&depth_info)
 			.color_blend_state(&color_blend_state)
 			.dynamic_state(&dynamic_info)
-			.layout(vert_pipeline_layout)
+			.layout(pipeline_layout)
 			.render_pass(renderpass);
-
-
 
 		let pipelines = unsafe { device
 			.create_graphics_pipelines(ash::vk::PipelineCache::null(), &[graphic_pipeline_info], None)
@@ -203,17 +194,13 @@ impl Shader<'_> {
 
 		let pipeline = pipelines[0];
 
-		// finally create pipeline
-
 		Ok(Shader {
 			device: device,
 
 			vert_module: vert_module,
 			frag_module: frag_module,
 
-			vert_pipeline_layout: vert_pipeline_layout,
-			frag_pipeline_layout: frag_pipeline_layout,
-
+			pipeline_layout: pipeline_layout,
 			pipeline: pipeline,
 
 			viewports: viewports,
@@ -228,8 +215,7 @@ impl Drop for Shader<'_> {
 			self.device.destroy_shader_module(self.vert_module, None);
 			self.device.destroy_shader_module(self.frag_module, None);
 
-			self.device.destroy_pipeline_layout(self.vert_pipeline_layout, None);
-			self.device.destroy_pipeline_layout(self.frag_pipeline_layout, None);
+			self.device.destroy_pipeline_layout(self.pipeline_layout, None);
 		}
 	}
 }
