@@ -2,7 +2,7 @@ mod aqua;
 mod textures;
 mod buffers;
 mod utils;
-
+mod player;
 use std ::{
 	error::Error,
 };
@@ -10,8 +10,6 @@ use std ::{
 mod shader;
 
 extern crate ash;
-
-extern crate ndarray;
 
 pub struct Context<'a> {
 	image_available_semaphore: ash::vk::Semaphore, 
@@ -33,6 +31,7 @@ pub struct Context<'a> {
 
 	ibo: buffers::Indexbuffer,
 	shader: shader::Shader<'a>,
+	player: player::Player,
 }
 
 fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
@@ -64,20 +63,21 @@ fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 
 	// Reset the command buffer ....
 	// Start a new record wouhouuuu
-	let command_buffer_begin_info = ash::vk::CommandBufferBeginInfo::default()
-		.flags(ash::vk::CommandBufferUsageFlags::SIMULTANEOUS_USE);
-
-	unsafe { ctx.device.begin_command_buffer(current_command_buffer, &command_buffer_begin_info) ?}
-
-	let render_pass_begin_info = ash::vk::RenderPassBeginInfo::default()
-		.render_pass(ctx.render_pass_khr)
-		.framebuffer(ctx.framebuffers[image_index as usize])
-		.render_area(ash::vk::Rect2D{ offset : ash::vk::Offset2D {x : 0, y : 0}, extent: ctx.extent})
-		.clear_values(&[ash::vk::ClearValue { color : ash::vk::ClearColorValue{ float32 : [1.0f32, 1.0f32, 1.0f32, 1.0f32]},}]);
 
 	// Begin
 
 	unsafe {
+		let command_buffer_begin_info = ash::vk::CommandBufferBeginInfo::default()
+			.flags(ash::vk::CommandBufferUsageFlags::SIMULTANEOUS_USE);
+
+		ctx.device.begin_command_buffer(current_command_buffer, &command_buffer_begin_info)?;
+
+		let render_pass_begin_info = ash::vk::RenderPassBeginInfo::default()
+			.render_pass(ctx.render_pass_khr)
+			.framebuffer(ctx.framebuffers[image_index as usize])
+			.render_area(ash::vk::Rect2D{ offset : ash::vk::Offset2D {x : 0, y : 0}, extent: ctx.extent})
+			.clear_values(&[ash::vk::ClearValue { color : ash::vk::ClearColorValue{ float32: [0.0f32, 0.0f32, 1.0f32, 1.0f32]},}]);
+
 		ctx.device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE);
 		ctx.device.cmd_bind_pipeline(current_command_buffer, ash::vk::PipelineBindPoint::GRAPHICS, ctx.shader.pipeline);
 
@@ -434,7 +434,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	textures::Texture::create_image_from_path(q_family, device, memory_properties, command_pool_khr, "res/pig.png".to_string());
 
 	let shader = shader::Shader::new(&device, extent, render_pass_khr, "src/shaders/shader.vert.spv", "src/shaders/shader.frag.spv")?;
-	println!("\n\n\n\n\n\n");
+	let player = player::Player::new();
 
 	let context = Context{
 		image_available_semaphore : image_available_semaphore,
@@ -451,6 +451,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		swapchain_loader :  &swapchain_loader,
 		ibo: ibo.unwrap(),
 		shader: shader,
+		player: player,
 	};
 
 	// draw loop
