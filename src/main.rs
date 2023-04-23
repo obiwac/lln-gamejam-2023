@@ -30,8 +30,10 @@ pub struct Context<'a> {
 	extent : ash::vk::Extent2D,
 	q_family : ash::vk::Queue,
 	q_present : ash::vk::Queue,
-}
 
+	ibo: buffers::Indexbuffer,
+	shader: shader::Shader<'a>,
+}
 
 fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 {
@@ -47,7 +49,6 @@ fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 			ash::vk::Fence::null(),
 		)
 	};
-
 
 	let image_index = match next_image_frame {
 		Ok((image_index, _)) => image_index,
@@ -75,14 +76,22 @@ fn draw(ctx : &Context) -> Result<(), Box<dyn Error>>
 		.clear_values(&[ash::vk::ClearValue { color : ash::vk::ClearColorValue{ float32 : [1.0f32, 1.0f32, 1.0f32, 1.0f32]},}]);
 
 	// Begin
-	unsafe { ctx.device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE ) };
-	
-	// Bind pipeline 
-	// Draw 
-	// .......
-	// End
-	unsafe { ctx.device.cmd_end_render_pass(current_command_buffer) };
-	unsafe { ctx.device.end_command_buffer(current_command_buffer)? };
+
+	unsafe {
+		ctx.device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE);
+		ctx.device.cmd_bind_pipeline(current_command_buffer, ash::vk::PipelineBindPoint::GRAPHICS, ctx.shader.pipeline);
+
+		ctx.device.cmd_set_viewport(current_command_buffer, 0, &ctx.shader.viewports);
+		ctx.device.cmd_set_scissor(current_command_buffer, 0, &ctx.shader.scissors);
+
+		ctx.device.cmd_bind_index_buffer(current_command_buffer, ctx.ibo.ibo, 0, ash::vk::IndexType::UINT32);
+		ctx.device.cmd_draw_indexed(current_command_buffer, 6, 1, 0, 0, 1);
+
+		// ctx.device.cmd_draw(current_command_buffer, 3, 1, 0, 0);
+
+		ctx.device.cmd_end_render_pass(current_command_buffer);
+		ctx.device.end_command_buffer(current_command_buffer)?;
+	}
 
 	let a_available_semaphore = [ctx.image_available_semaphore]; 
 	let a_current_command_buffer = [current_command_buffer]; 
@@ -119,6 +128,10 @@ extern "C" fn draw_wrapper(win: u64, data: u64) -> u64 {
 
 	let mut mouse = aqua::mouse::Mouse::default();
 	mouse.update();
+
+	if mouse.poll_button(aqua::mouse::MouseButton::Left) {
+		return 1;
+	}
 
 	/**********************************************************************/
 	draw(ctx);
@@ -202,7 +215,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let q_present = unsafe { device.get_device_queue(q_present_index, 0)};
 
 	let memory_properties = unsafe { instance.get_physical_device_memory_properties(phys_device) };
-	println!("Memory propperties {:?}", memory_properties);
+	println!("Memory properties {:?}", memory_properties);
 	// Create the swapchain 
 
 
@@ -410,84 +423,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 	};
 
 	let index_buffer_data = [0u32, 1, 2];
-	buffers::Indexbuffer::new(device, memory_properties, index_buffer_data.to_vec());
+	let ibo = buffers::Indexbuffer::new(device, memory_properties, index_buffer_data.to_vec());
 
 	// Create depth ressources : 	
 	/*textures::Texture::create_image(device, memory_properties, ash::vk::MemoryPropertyFlags::DEVICE_LOCAL,
 		extent.width, extent.height, ash::vk::Format::D32_SFLOAT, ash::vk::ImageTiling::OPTIMAL, ash::vk::ImageType::TYPE_2D
 	,1 , ash::vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,  ash::vk::SampleCountFlags::TYPE_1);
 	*/
+	println!("ojides^jio^idfsodfsoojidfs");
+	textures::Texture::create_image_from_path(q_family, device, memory_properties, command_pool_khr, "res/pig.png".to_string());
 
-	let depth_image_create_info = ash::vk::ImageCreateInfo::default()
-		.image_type(ash::vk::ImageType::TYPE_2D)
-		.format(ash::vk::Format::D16_UNORM)
-		.extent(ash::vk::Extent3D{
-			width : extent.width,
-			height : extent.height,
-			depth : 1,  
-		})
-		.mip_levels(1)
-		.array_layers(1)
-		.samples(ash::vk::SampleCountFlags::TYPE_1)
-		.tiling(ash::vk::ImageTiling::OPTIMAL)
-		.usage(ash::vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT)
-		.sharing_mode(ash::vk::SharingMode::EXCLUSIVE);
-
-	let depth_image = unsafe { device.create_image(&depth_image_create_info, None).unwrap() };
-	let depth_image_memory_req = unsafe { device.get_image_memory_requirements(depth_image) };
-	let depth_image_memory_index = utils:: find_memory_type(
-		depth_image_memory_req,
-		memory_properties,
-		ash::vk::MemoryPropertyFlags::DEVICE_LOCAL,
-	);
-
-	let depth_image_allocate_info = unsafe  { ash::vk::MemoryAllocateInfo::default().allocation_size(depth_image_memory_req.size).memory_type_index(depth_image_memory_index) };
-	let depth_image_memory = unsafe  { device.allocate_memory(&depth_image_allocate_info, None).unwrap() };
-	unsafe { device.bind_image_memory(depth_image, depth_image_memory, 0) };
-
-	let fence_create_info =
-	ash::vk::FenceCreateInfo::default().flags(ash::vk::FenceCreateFlags::SIGNALED);
-	let draw_commands_reuse_fence = unsafe { device.create_fence(&fence_create_info, None).expect("Create fence failed.") };
-	let setup_commands_reuse_fence = unsafe { device.create_fence(&fence_create_info, None).expect("Create fence failed.") };
-	/* 
-	record_submit_commandbuffer(
-		&device,
-		setup_command_buffer,
-		setup_commands_reuse_fence,
-		q_present,
-		&[],
-		&[],
-		&[],
-		|device, setup_command_buffer| {
-			let layout_transition_barriers = ash::vk::ImageMemoryBarrier::default()
-				.image(depth_image)
-				.dst_access_mask(
-					ash::vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ
-						| ash::vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE,
-				)
-				.new_layout(ash::vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-				.old_layout(ash::vk::ImageLayout::UNDEFINED)
-				.subresource_range(
-					ash::vk::ImageSubresourceRange::default()
-						.aspect_mask(ash::vk::ImageAspectFlags::DEPTH)
-						.layer_count(1)
-						.level_count(1),
-				);
-			unsafe {
-				device.cmd_pipeline_barrier(
-					setup_command_buffer,
-					ash::vk::PipelineStageFlags::BOTTOM_OF_PIPE,
-					ash::vk::PipelineStageFlags::LATE_FRAGMENT_TESTS,
-					ash::vk::DependencyFlags::empty(),
-					&[],
-					&[],
-					&[layout_transition_barriers],
-				);
-			}
-		},
-	);*/
-
-
+	let shader = shader::Shader::new(&device, extent, render_pass_khr, "src/shaders/shader.vert.spv", "src/shaders/shader.frag.spv")?;
+	println!("\n\n\n\n\n\n");
 
 	let context = Context{
 		image_available_semaphore : image_available_semaphore,
@@ -502,10 +449,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 		render_pass_khr : render_pass_khr, 
 		swapchain_khr : swapchain_khr,
 		swapchain_loader :  &swapchain_loader,
+		ibo: ibo.unwrap(),
+		shader: shader,
 	};
-
-	let shader = shader::Shader::new(&context, "src/shaders/shader.vert.spv", "src/shaders/shader.frag.spv");
-	println!("\n\n\n\n\n\n");
 
 	// draw loop
 	
@@ -513,6 +459,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	win.draw_loop();
 
 	// Destroy things
+
 	unsafe { swapchain_loader.destroy_swapchain(swapchain_khr, None) };
 	unsafe { device.destroy_command_pool(command_pool_khr, None) };
 	unsafe { device.destroy_render_pass(render_pass_khr, None) };
