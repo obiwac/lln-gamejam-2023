@@ -6,6 +6,9 @@ extern crate ash;
 pub struct Shader<'a> {
 	context: &'a Context<'a>,
 
+	vert_module: ash::vk::ShaderModule,
+	frag_module: ash::vk::ShaderModule,
+
 	vert_pipeline_layout: ash::vk::PipelineLayout,
 	frag_pipeline_layout: ash::vk::PipelineLayout,
 }
@@ -72,6 +75,9 @@ impl Shader<'_> {
 		Ok(Shader {
 			context: context,
 
+			vert_module: vert_module,
+			frag_module: frag_module,
+
 			vert_pipeline_layout: vert_pipeline_layout,
 			frag_pipeline_layout: frag_pipeline_layout,
 		})
@@ -81,6 +87,9 @@ impl Shader<'_> {
 impl Drop for Shader<'_> {
 	fn drop(&mut self) {
 		unsafe {
+			self.context.device.destroy_shader_module(self.vert_module, None);
+			self.context.device.destroy_shader_module(self.frag_module, None);
+
 			self.context.device.destroy_pipeline_layout(self.vert_pipeline_layout, None);
 			self.context.device.destroy_pipeline_layout(self.frag_pipeline_layout, None);
 		}

@@ -153,7 +153,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let q_present = unsafe { device.get_device_queue(q_present_index, 0)};
 
 	let memory_properties = unsafe { instance.get_physical_device_memory_properties(phys_device) };
-	println!("Memory propperties {:?}", memory_properties);
+	println!("Memory properties {:?}", memory_properties);
 	// Create the swapchain 
 
 
@@ -357,9 +357,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 	};
 
 	let index_buffer_data = [0u32, 1, 2];
-	buffers::Indexbuffer::new(device, memory_properties, index_buffer_data.to_vec());
+	let ibo = buffers::Indexbuffer::new(device, memory_properties, index_buffer_data.to_vec());
 
-	// Create depth ressources : 	
+	// Create depth resources :
 	let depth_format = {
 
 	};
