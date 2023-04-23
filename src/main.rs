@@ -45,7 +45,7 @@ fn draw(ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 		ctx.player.mv_mat.translate(0.0, 0.0, -1.0);
 		ctx.player.mv_mat = ctx.player.mv_mat.rotate_2d(test * 6.28 + 6.28 / 4.0, (test / 3.0 * 2.0).sin() / 2.0);
 
-		test += 0.00001;
+		test += 0.0001;
 	}
 
 	let mvp_mat = ctx.player.p_mat.mul(&ctx.player.mv_mat);
@@ -91,7 +91,7 @@ fn draw(ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 			.render_pass(ctx.render_pass_khr)
 			.framebuffer(ctx.framebuffers[image_index as usize])
 			.render_area(ash::vk::Rect2D{ offset : ash::vk::Offset2D {x : 0, y : 0}, extent: ctx.extent})
-			.clear_values(&[ash::vk::ClearValue { color : ash::vk::ClearColorValue{ float32: [0.0f32, 0.0f32, 1.0f32, 1.0f32]},}]);
+			.clear_values(&[ash::vk::ClearValue { color : ash::vk::ClearColorValue{ float32: [1.0f32, 1.0f32, 1.0f32, 1.0f32]},}]);
 
 		ctx.device.cmd_begin_render_pass(current_command_buffer, &render_pass_begin_info, ash::vk::SubpassContents::INLINE);
 		ctx.device.cmd_bind_pipeline(current_command_buffer, ash::vk::PipelineBindPoint::GRAPHICS, ctx.shader.pipeline);
