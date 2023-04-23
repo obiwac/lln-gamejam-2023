@@ -25,6 +25,22 @@ impl Mat {
 		}
 	}
 
+	pub fn mul(&mut self, other: &Mat) -> Mat {
+		let mut mat = Mat::new();
+
+		for i in 0..4 {
+			for j in 0..4 {
+				mat.mat[i][j] =
+					self.mat[0][j] * other.mat[i][0] +
+					self.mat[1][j] * other.mat[i][1] +
+					self.mat[2][j] * other.mat[i][2] +
+					self.mat[3][j] * other.mat[i][3];
+			}
+		}
+
+		mat
+	}
+
 	pub fn frustum(&mut self, left: f32, right: f32, bottom: f32, top: f32, near: f32, far: f32) {
 		let dx = right - left;
 		let dy = top - bottom;

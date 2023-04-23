@@ -11,8 +11,6 @@ mod shader;
 
 extern crate ash;
 
-extern crate ndarray;
-
 pub struct Context<'a> {
 	image_available_semaphore: ash::vk::Semaphore, 
 	render_finished_semaphore: ash::vk::Semaphore, 
