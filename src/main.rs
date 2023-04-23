@@ -110,12 +110,10 @@ fn draw_frame(ctx : &Context) -> Result<(), Box<dyn Error>>
 extern "C" fn draw(win: u64, data: u64) -> u64 {
 	let ctx: &Context = unsafe { std::mem::transmute(data) };
 
-	println!("Draw hook {:} {:}", win, data);
-
 	let mut mouse = aqua::mouse::Mouse::default();
 	mouse.update();
 
-	println!("{:}", mouse.poll_axis(aqua::mouse::MouseAxis::X));
+	//println!("{:}", mouse.poll_axis(aqua::mouse::MouseAxis::X));
 
 
 	/**********************************************************************/
@@ -269,7 +267,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	let command_pool_create_info = ash::vk::CommandPoolCreateInfo::default()
 	.queue_family_index(q_family_index)
-	.flags(ash::vk::CommandPoolCreateFlags::empty()); //TODO Check flag...	
+	.flags(ash::vk::CommandPoolCreateFlags:: RESET_COMMAND_BUFFER); //TODO Check flag...	
 
 	let command_pool_khr =  unsafe { device.create_command_pool(&command_pool_create_info, None)? };
 
