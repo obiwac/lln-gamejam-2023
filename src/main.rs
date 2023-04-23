@@ -110,12 +110,8 @@ fn draw_frame(ctx : &Context) -> Result<(), Box<dyn Error>>
 extern "C" fn draw(win: u64, data: u64) -> u64 {
 	let ctx: &Context = unsafe { std::mem::transmute(data) };
 
-	println!("Draw hook {:} {:}", win, data);
-
 	let mut mouse = aqua::mouse::Mouse::default();
 	mouse.update();
-
-	println!("{:}", mouse.poll_axis(aqua::mouse::MouseAxis::X));
 
 
 	/**********************************************************************/
