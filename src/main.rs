@@ -1,4 +1,5 @@
-mod aqua;
+extern crate aqua;
+
 mod textures;
 mod buffers;
 mod utils;
@@ -204,7 +205,9 @@ pub fn record_submit_commandbuffer<F: FnOnce(&ash::Device, ash::vk::CommandBuffe
             .expect("queue submit failed.");
     }
 }
-fn main() -> Result<(), Box<dyn Error>> {
+
+#[no_mangle]
+pub fn main() -> Result<(), Box<dyn Error>> {
 	let name = "Louvain-li-Nux Gamejam 2023";
 	
 	const WIDTH: u32 = 800;

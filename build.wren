@@ -16,6 +16,7 @@ glsl_src
 var rustc = RustC.new()
 
 rustc.add_dep("ash", "https://github.com/obiwac/ash-aqua")
+rustc.add_dep("aqua", "https://github.com/inobulles/aqua-rs", ["vk"])
 
 var src = ["src/main.rs"]
 

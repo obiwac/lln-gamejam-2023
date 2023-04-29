@@ -1,6 +1,7 @@
-#[path = "utils.rs"] mod utils;
-#[path = "aqua/png.rs"] mod png;
+extern crate aqua;
 
+#[path = "utils.rs"] mod utils;
+use aqua::png;
 
 use std ::{
 	error::Error,
