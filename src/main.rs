@@ -1,4 +1,5 @@
-mod aqua;
+extern crate aqua;
+
 mod buffers;
 mod player;
 mod textures;
@@ -49,7 +50,7 @@ fn draw(ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 			.mv_mat
 			.rotate_2d(test + 6.28 / 4.0, (test / 3.0 * 2.0).sin() / 2.0);
 
-		test += 0.001;
+		test += 0.00001;
 	}
 
 	let mvp_mat = ctx.player.p_mat.mul(&ctx.player.mv_mat);
@@ -250,7 +251,9 @@ pub fn record_submit_commandbuffer<F: FnOnce(&ash::Device, ash::vk::CommandBuffe
 			.expect("queue submit failed.");
 	}
 }
-fn main() -> Result<(), Box<dyn Error>> {
+
+#[no_mangle]
+pub fn main() -> Result<(), Box<dyn Error>> {
 	let name = "Louvain-li-Nux Gamejam 2023";
 
 	const WIDTH: u32 = 800;
