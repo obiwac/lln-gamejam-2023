@@ -35,7 +35,7 @@ impl Shader<'_> {
 			.create_shader_module(&info, None)
 			.expect("can't create shader module") };
 
-		Ok(module)
+	Ok(module)
 	}
 
 	pub fn new<'a>(device: &'a ash::Device, extent: ash::vk::Extent2D, renderpass: ash::vk::RenderPass, descriptor_layouts: &[ash::vk::DescriptorSetLayout], vert_path: &'a str, frag_path: &'a str) -> Result<Shader<'a>, Box<dyn Error>> {

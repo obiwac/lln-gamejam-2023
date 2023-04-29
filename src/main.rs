@@ -34,23 +34,38 @@ pub struct Context<'a> {
 	descriptor_sets: Vec<ash::vk::DescriptorSet>,
 }
 
-static mut test: f32 = 0.0;
+static mut test: f32 = -1.0;
+static mut target_test: f32 = -1.0;
 
 fn draw(ctx: &mut Context) -> Result<(), Box<dyn Error>> {
+
+	let mut mouse = aqua::mouse::Mouse::default();
+	mouse.update();
+
+	
+	let x = mouse.poll_axis(aqua::mouse::MouseAxis::X);
+	let y = mouse.poll_axis(aqua::mouse::MouseAxis::Y);
+	let z = mouse.poll_axis(aqua::mouse::MouseAxis::Z) / 10.;
+	
 	unsafe {
 		ctx.player.p_mat.identity();
 		ctx.player
 			.p_mat
-			.perspective(90.0, 800.0 / 600.0, 0.1, 500.0);
+			.perspective(93.0, 800.0 / 600.0, 0.001, 50.0);
 
 		ctx.player.mv_mat.identity();
-		ctx.player.mv_mat.translate(0.0, 0.0, -1.0);
+		ctx.player.mv_mat.translate(0.0, 0.0, test);
 		ctx.player.mv_mat = ctx
 			.player
 			.mv_mat
-			.rotate_2d(test + 6.28 / 4.0, (test / 3.0 * 2.0).sin() / 2.0);
+			.rotate_2d(x * 6.28,-y * 6.28 + 6.28 / 2.0);
 
-		test += 0.00001;
+		target_test += z;
+		test += (target_test - test) / 100.0;
+
+		if (target_test > 0.01) {
+			target_test = 0.01;
+		}
 	}
 
 	let mvp_mat = ctx.player.p_mat.mul(&ctx.player.mv_mat);
@@ -187,13 +202,6 @@ fn draw(ctx: &mut Context) -> Result<(), Box<dyn Error>> {
 
 extern "C" fn draw_wrapper(win: u64, data: u64) -> u64 {
 	let mut ctx: &mut Context = unsafe { std::mem::transmute(data) };
-
-	let mut mouse = aqua::mouse::Mouse::default();
-	mouse.update();
-
-	if mouse.poll_button(aqua::mouse::MouseButton::Left) {
-		return 1;
-	}
 
 	/**********************************************************************/
 	draw(ctx);
@@ -494,7 +502,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
 		device,
 		memory_properties,
 		command_pool_khr,
-		"res/pig.png".to_string(),
+		"res/obama.png".to_string(),
 	)
 	.unwrap();
 
