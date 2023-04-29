@@ -1,7 +1,7 @@
 # lln-gamejam-2023
 
 Submission for the 2023 Louvain-li-Nux gamejam.
-AKA @alexisloic21 & @obiwac's first foray into Vulkan and Rust.
+AKA [@alexisloic21](https://github.com/alexisloic21) & [@obiwac](https://github.com/obiwac)'s first foray into Vulkan and Rust.
 AKA Obamatriangle.
 
 ## Eyecandy
