@@ -6,7 +6,7 @@ AKA Obamatriangle.
 
 ## Eyecandy
 
-![Obamatriangle](Eyecandy/obamatriangle.jpg)
+![Obamatriangle](eyecandy/obamatriangle.jpg)
 
 ## Building
 
