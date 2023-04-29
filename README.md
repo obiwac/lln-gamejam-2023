@@ -4,6 +4,10 @@ Submission for the 2023 Louvain-li-Nux gamejam.
 AKA @alexisloic21 & @obiwac's first foray into Vulkan and Rust.
 AKA Obamatriangle.
 
+## Eyecandy
+
+![Obamatriangle](Eyecandy/Obamatriangle.jpg)
+
 ## Building
 
 Assuming you have [Bob the Builder](https://github.com/inobulles/bob) installed:
