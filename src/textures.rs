@@ -171,9 +171,9 @@ impl Texture {
         let image_extent = ash::vk::Extent2D { width : png_result.width , height : png_result.height };
         
         // CREATE STAGGING BUFFER
-
+        println!("Bytes: {}",4 * image_extent.width * image_extent.height);
         let buffer_info = ash::vk::BufferCreateInfo::default()
-        .size((png_result.bpp/8 * image_extent.width * image_extent.height) as u64)
+        .size((4 * image_extent.width * image_extent.height) as u64)
         .usage(ash::vk::BufferUsageFlags::TRANSFER_SRC)
         .sharing_mode(ash::vk::SharingMode::EXCLUSIVE);
 
@@ -193,9 +193,9 @@ impl Texture {
 
         // Copy (staging)
 
-        let memory = unsafe { device.map_memory(staging_buffer_memory, 0, (png_result.bpp/8 * image_extent.width * image_extent.height) as u64, ash::vk::MemoryMapFlags::empty()).unwrap() };
+        let memory = unsafe { device.map_memory(staging_buffer_memory, 0, (4* image_extent.width * image_extent.height) as u64, ash::vk::MemoryMapFlags::empty()).unwrap() };
 
-        unsafe { copy_nonoverlapping(png_result.buf.as_ptr(), memory.cast(), (png_result.bpp/8 * image_extent.width * image_extent.height) as usize) };
+        unsafe { copy_nonoverlapping(png_result.buf.as_ptr(), memory.cast(), (4 * image_extent.width * image_extent.height) as usize) };
 
         unsafe { device.unmap_memory(staging_buffer_memory) };
 
