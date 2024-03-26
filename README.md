@@ -3,6 +3,7 @@
 Submission for the 2023 Louvain-li-Nux gamejam.
 AKA [@alexisloic21](https://github.com/alexisloic21) & [@obiwac](https://github.com/obiwac)'s first foray into Vulkan and Rust.
 AKA Obamatriangle.
+(Yes, that's really all we managed to do after 24 hours.)
 
 ## Eyecandy
 
